@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "expb"
+version = "0.1.0"
+authors = [
+    {name = "Andrew Root", email = "root.drew27@gmail.com"}
+]
+description = "A description of your package"
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.setuptools]
+packages = ["expb"]
