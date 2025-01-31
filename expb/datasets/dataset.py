@@ -11,12 +11,13 @@ class Dataset(object):
         self.path = path
         self.metadata = metadata
         self.name = name
+        self.device = 'cpu' # or 'cuda'
 
     def __str__(self):
-        return f"{self.name}\n===\nOrigin Path: {self.path}\n===\nFormat: {self.metadata.format}"
+        return f"{self.name}\n===\nDataset Directory: {self.path}\n===\nFormat: {self.metadata.format}"
 
     def __len__(self):
-        return self.data.shape[0]
+        return len(self.metadata)
 
     def _get_datum_by_index(self, id: int):
         fname, meta_value = self.meta_data[id]
@@ -30,10 +31,10 @@ class Dataset(object):
     def __getitem__(self, id: int | str):
         try:
             if isinstance(id, int):
-                datum = self.get_datum_by_index(id)
+                datum = self._get_datum_by_index(id)
 
             if isinstance(id, str):
-                datum = self.get_datum_by_name(id)
+                datum = self._get_datum_by_name(id)
 
             # TODO: Implement support for adv. indexing
             # if isinstance(idx, (Iterable[int])):
@@ -50,14 +51,17 @@ class Dataset(object):
     def shape(self):
         return self.data.shape()
     
-    def _load(self, device):
+    def _load(self, device:str):
         pass # TODO: implement this
 
-    def load(self, device) -> None:
+    def load(self, device:str=None) -> None:
         if self.data is None:
             self._load(device)
+        elif device != self.device:
+            self.to(device)
         else:
             print(f"Dataset is already loaded onto ({self.data.device})")
-        
 
+    def to(self, device:str) -> None:
+        self.device = device
 

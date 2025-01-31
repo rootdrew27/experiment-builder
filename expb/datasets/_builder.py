@@ -2,7 +2,8 @@ from pathlib import Path
 
 from .dataset import Dataset
 from .metadata import CocoMetadata
-from . import utils
+from ._utils import _rectify_paths, _rectify_dir_paths, _load_annotation_data, _get_dataset_split_dirs
+from .labeling_platform import LabelingPlatform, LabelingPlatformOption
 
 VALID_FORMATS = ["coco-seg"]
 VALID_SOURCE = ["roboflow"]
@@ -34,10 +35,10 @@ def _get_tags_coco(annot_img: dict | None, all_tags: list) -> None:
     extra = annot_img.get("extra", False)
     if extra:
         tags = annot_img.get("user_tags", False)
-    if tags:
-        for tag in tags:
-            if tag not in all_tags:
-                all_tags.append(tag)
+        if tags:
+            for tag in tags:
+                if tag not in all_tags:
+                    all_tags.append(tag)
 
 
 def _build_name2value_coco(annot_data) -> tuple[dict, list]:
@@ -71,10 +72,12 @@ def _build_name2value_coco(annot_data) -> tuple[dict, list]:
     return name2value, all_tags
 
 
-def _build_metadata__coco(annot_path: Path, source: str) -> CocoMetadata:
-    annot_data = utils._load_annotation_data(annot_path)
+def _build_metadata__coco(
+    annot_path: Path, labeling_platform: LabelingPlatformOption
+) -> CocoMetadata:
+    annot_data = _load_annotation_data(annot_path)
 
-    if source == "roboflow":
+    if labeling_platform == LabelingPlatform.ROBOFLOW:
         category_name2id = _build_category_name2id_coco__roboflow(
             annot_data["categories"]
         )
@@ -94,15 +97,18 @@ def _build_metadata__coco(annot_path: Path, source: str) -> CocoMetadata:
     )
 
 
-def _builder__coco(data_path: Path, annotation_filename: str, source: str, name:str) -> Dataset:
-    if annotation_filename:
-        annot_path = data_path / annotation_filename
-    else:
-        annot_path = (
-            data_path / "_annotations.coco.json"
-        )  # else use default filename when source="roboflow"
+def _builder__coco(
+    data_path: Path,
+    labeling_platform: LabelingPlatformOption,
+    name: str,
+) -> Dataset:
+    annot_path = (
+        data_path / "_annotations.coco.json"
+    )  # use default filename when source="roboflow"
 
-    metadata = _build_metadata__coco(annot_path=annot_path)
+    metadata = _build_metadata__coco(
+        annot_path=annot_path, labeling_platform=labeling_platform
+    )
     return Dataset(data_path, metadata, name)
 
 
@@ -110,20 +116,58 @@ _format2builder = {"coco-seg": _builder__coco}
 
 
 def build_dataset(
-    data_path: str | Path, format: str, source: str = "roboflow", name: str = None
-) -> Dataset:
-    assert source == "roboflow", (
-        'The source parameter only supports "roboflow" as of now.'
+    data_path: str | Path,
+    format: str,
+    labeling_platform: LabelingPlatformOption = LabelingPlatform.ROBOFLOW,
+    is_split: bool = False,
+) -> Dataset | tuple[Dataset]:
+    """Build a dataset of the specified format. The dataset's name attribute will be set to the root directory name.
+
+    Args:
+        data_path (str | Path): A path to the root directory of a dataset.
+        format (str): The format that the annotations are in.
+        labeling_platform (LabelingPlatformOption, optional): The labeling platform used to create the annotations, if known. Defaults to LabelingPlatform.ROBOFLOW.
+        is_split (bool, optional): Whether or not the root directory contains sub-directories with splits of the dataset (one or more splits is valid). The dataset names will be the root director name + the split directory name. Defaults to False.
+
+    Returns:
+        Dataset|tuple[Dataset]: A dataset, or datasets if is_split=True.
+    """
+    data_path = _rectify_dir_paths(data_path)
+
+    assert any(data_path.iterdir()) is True, (
+        f"The data_path: {data_path} is empty! It must contain images and annotations file."
+    )
+
+    assert labeling_platform == LabelingPlatform.ROBOFLOW, (
+        "The source parameter only supports ROBOFLOW as of now."
     )
 
     assert format in VALID_FORMATS, (
         f"The format ({format}) is not one of the valid formats: {VALID_FORMATS}"
     )
 
-    data_path = Path(data_path)
-    assert data_path.exists() and any(data_path.iterdir()), (
-        "The path argument must be a valid path"
-    )
-
     builder = _format2builder[format]
-    return builder(data_path=data_path, source=source, name=name)
+
+    if is_split:
+        assert (num_split_dirs := len(_get_dataset_split_dirs(data_path))) , (f"The parameter is_split was set to True but only {num_split_dirs} splits were identified.")
+
+        split_paths = [
+            sub_path
+            for sub_path in data_path.iterdir()
+            if sub_path.is_dir()
+        ]
+        return [
+            builder(
+                split_path,
+                labeling_platform,
+                name=data_path.stem + " " + split_path.stem,
+            )
+            for split_path in split_paths
+        ]
+
+    else:
+        return builder(
+            data_path=data_path,
+            labeling_platform=labeling_platform,
+            name=data_path.stem,
+        )

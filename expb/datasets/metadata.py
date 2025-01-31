@@ -28,11 +28,11 @@ class Metadata(object):
         return item
     
     def __len__(self):
-        return len(self.items)
+        return len(self.fnames)
     
 class CocoMetadata(Metadata):
     def __init__(self, path:Path, fname2value:dict, category_name2id:dict, all_tags:list[str]):
-        super().__init__(self, path, fname2value)
+        super().__init__(path, fname2value)
         self.format = "coco"
         self.category_name2id = category_name2id
         self.all_tags = all_tags
