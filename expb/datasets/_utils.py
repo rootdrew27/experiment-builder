@@ -7,7 +7,6 @@ def _rectify_paths(*args: Path) -> Path | tuple[Path]:
     for arg in args:
         if isinstance(arg, str):
             arg = Path(arg)
-        assert arg.exists(), f"The path: {arg} must exist!"
         output.append(arg)
 
     if len(output) == 1:

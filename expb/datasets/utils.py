@@ -33,31 +33,30 @@ def extract_zip_dataset(
     overwrite: bool,
     labeling_platform: LabelingPlatformOption = LabelingPlatform.ROBOFLOW,
 ):
-    
     src_path, dest_path = _rectify_paths(src_path, dest_path)
 
-    if (overwrite) or (any(dest_path.iterdir()) is False):
+    assert src_path.exists(), f"The zip file at: {src_path} does not exist!"
+
+    if dest_path.exists():
+        assert overwrite or any(dest_path.iterdir()), (
+            "No extraction occurring. If it exists, the destination path must be empty or overwrite set to True."
+        )  # NOTE: This debatably uses Exceptions for control flow
+
         print("Removing old data.")
         shutil.rmtree(dest_path)
+        dest_path.mkdir(parents=True, exists_ok=True)
 
-        dest_path.mkdir(parents=True)
+    _extract_zip(src_path, dest_path)
 
-        _extract_zip(src_path, dest_path)
+    # Roboflow will include a split director for datasets with one split, so we remove it.
+    if (
+        labeling_platform == LabelingPlatform.ROBOFLOW
+        and len(_get_dataset_split_dirs(dest_path)) == 1
+    ):
+        print("Fixing directory structure.")
+        fix_data_folder_structure(dest_path=dest_path)
 
-        # Roboflow will include a split director for datasets with one split, so we remove it.
-        if (
-            labeling_platform == LabelingPlatform.ROBOFLOW
-            and len(_get_dataset_split_dirs(dest_path)) == 1
-        ):
-            print("Fixing directory structure.")
-            fix_data_folder_structure(dest_path=dest_path)
-
-        print("Extraction Complete.")
-
-    else:
-        print(
-            "No extraction occuring. The destination path must be empty or overwrite set to True."
-        )
+    print("Extraction Complete.")
 
 
 # TODO: add assert stmt about dataset_type, to enforce specific string values
@@ -97,6 +96,3 @@ def download_dataset(
         print(
             "No download occuring. The destination path must be empty or overwrite set to True."
         )
-
-
-
