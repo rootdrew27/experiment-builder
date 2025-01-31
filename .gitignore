@@ -1,6 +1,7 @@
 __pycache__/
 .vscode/
 .venv/
+git_notes.txt
 
 *egg-info
 

@@ -9,13 +9,13 @@ from ._utils import _rectify_paths, _get_dataset_split_dirs
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
 
 
-def fix_data_folder_structure(dest_path: Path):
+def fix_data_folder_structure(dest_path: Path) -> None:
     for file_path in glob(str(dest_path / "train" / "*")):
         shutil.move(file_path, dest_path)
     (dest_path / "train").rmdir()
 
 
-def _extract_zip(src_path: Path, dest_path: Path) -> None:
+def _extract_zip(src_path: Path|str, dest_path: Path) -> None:
     zf = zipfile.ZipFile(src_path)
 
     if zf.testzip() is not None:
@@ -32,7 +32,7 @@ def extract_zip_dataset(
     dest_path: str | Path,
     overwrite: bool,
     labeling_platform: LabelingPlatformOption = LabelingPlatform.ROBOFLOW,
-):
+) -> None:
     src_path, dest_path = _rectify_paths(src_path, dest_path)
 
     assert src_path.exists(), f"The zip file at: {src_path} does not exist!"
@@ -44,7 +44,7 @@ def extract_zip_dataset(
 
         print("Removing old data.")
         shutil.rmtree(dest_path)
-        dest_path.mkdir(parents=True, exists_ok=True)
+        dest_path.mkdir(parents=True, exist_ok=True)
 
     _extract_zip(src_path, dest_path)
 
@@ -66,7 +66,7 @@ def download_dataset(
     zip: bool,
     overwrite: bool = False,
     labeling_platform: LabelingPlatformOption = LabelingPlatform.ROBOFLOW,
-):
+) -> None:
     if (
         (overwrite) or (not dest_path.exists()) or (not any(dest_path.iterdir()))
     ):  # if overwrite or directory doesnt exist or directory is empty then...

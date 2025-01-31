@@ -7,28 +7,28 @@ from .metadata import Metadata
 
 class Dataset(object):
     def __init__(self, path: Path, metadata: Metadata, name: str):
-        self.data:np.ndarray|None = None
+        self.data:np.ndarray
         self.path = path
         self.metadata = metadata
         self.name = name
         self.device = 'cpu' # or 'cuda'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}\n===\nDataset Directory: {self.path}\n===\nFormat: {self.metadata.format}"
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.metadata)
 
-    def _get_datum_by_index(self, id: int):
-        fname, meta_value = self.meta_data[id]
+    def _get_datum_by_index(self, id: int) -> tuple[np.ndarray, str, dict]:
+        fname, meta_value = self.metadata[id]
         return self.data[id], fname, meta_value
 
-    def _get_datum_by_name(self, id: str):
-        fname, meta_value = self.meta_data[id]
-        idx = self.meta_data.names.index(id)
+    def _get_datum_by_name(self, id: str) -> tuple[np.ndarray, str, dict]:
+        fname, meta_value = self.metadata[id]
+        idx = self.metadata.fnames.index(id)
         return self.data[idx], fname, meta_value
 
-    def __getitem__(self, id: int | str):
+    def __getitem__(self, id: int | str) -> tuple[np.ndarray, str, dict]:
         try:
             if isinstance(id, int):
                 datum = self._get_datum_by_index(id)
@@ -47,14 +47,11 @@ class Dataset(object):
             raise ve
         except IndexError:
             raise IndexError(f"The key ({id}) did not match an entry.")
-
-    def shape(self):
-        return self.data.shape()
     
-    def _load(self, device:str):
+    def _load(self, device:str|None) -> None:
         pass # TODO: implement this
 
-    def load(self, device:str=None) -> None:
+    def load(self, device:str|None=None) -> None:
         if self.data is None:
             self._load(device)
         elif device != self.device:
@@ -62,6 +59,6 @@ class Dataset(object):
         else:
             print(f"Dataset is already loaded onto ({self.data.device})")
 
-    def to(self, device:str) -> None:
-        self.device = device
+    def to(self, device:str|None) -> None:
+        self.device = device if isinstance(device, str) else 'cpu'
 

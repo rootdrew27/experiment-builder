@@ -4,13 +4,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "expb"
-version = "0.1.0"
+description = "A description of your package"
 authors = [
     {name = "Andrew Root", email = "root.drew27@gmail.com"}
 ]
-description = "A description of your package"
+version = "0.1.0"
 requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
 readme = "README.md"
 
 [tool.setuptools]
 packages = ["expb"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+disallow_untyped_defs = true
+
+[project.optional-dependencies]
+format = [
+    "ruff == 0.9.3"
+]
+
+type-checking = [
+    "mypy"
+]
+
+dev = [
+    "expb[lint, type-checking]"
+]

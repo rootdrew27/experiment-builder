@@ -11,7 +11,7 @@ VALID_SOURCE = ["roboflow"]
 
 # NOTE: Roboflow exhibits a strange and automatically creates a superclass. It is effectively ignored via the following function.
 # Revisions will need to be made when roboflow changes this behavior.
-def _build_category_name2id_coco__roboflow(annot_categories) -> dict:
+def _build_category_name2id_coco__roboflow(annot_categories: list[dict]) -> dict:
     name2id_temp = {}
 
     for category in annot_categories:
@@ -31,19 +31,21 @@ def _build_category_name2id_coco__roboflow(annot_categories) -> dict:
     return name2id_temp
 
 
-def _get_tags_coco(annot_img: dict | None, all_tags: list) -> None:
+def _get_tags_coco(annot_img: dict, all_tags: list) -> list:
     extra = annot_img.get("extra", False)
     if extra:
-        tags = annot_img.get("user_tags", False)
-        if tags:
-            for tag in tags:
-                if tag not in all_tags:
-                    all_tags.append(tag)
+        tags:list = annot_img.get("user_tags", [])
+        for tag in tags:
+            if tag not in all_tags:
+                all_tags.append(tag)
+        return tags
+    else:
+        return []
 
 
-def _build_name2value_coco(annot_data) -> tuple[dict, list]:
+def _build_name2value_coco(annot_data: dict) -> tuple[dict, list]:
     name2value = {}
-    all_tags = []
+    all_tags:list[str] = []
 
     for annot_img in annot_data["images"]:
         fname = annot_img["file_name"]
@@ -81,11 +83,11 @@ def _build_metadata__coco(
         category_name2id = _build_category_name2id_coco__roboflow(
             annot_data["categories"]
         )
-    else:
-        category_name2id = None
-        raise ValueError(
-            "The source argument must be specified as roboflow until others are implemented."
-        )
+    # else:
+    #     category_name2id = None
+    #     raise ValueError(
+    #         "The source argument must be specified as roboflow until others are implemented."
+    #     )
 
     fname2value, all_tags = _build_name2value_coco(annot_data)
 
@@ -116,11 +118,11 @@ _format2builder = {"coco-seg": _builder__coco}
 
 
 def build_dataset(
-    data_path: str | Path,
+    data_dir: str | Path,
     format: str,
     labeling_platform: LabelingPlatformOption = LabelingPlatform.ROBOFLOW,
     is_split: bool = False,
-) -> Dataset | tuple[Dataset]:
+) -> Dataset | list[Dataset]:
     """Build a dataset of the specified format. The dataset's name attribute will be set to the root directory name.
 
     Args:
@@ -132,10 +134,10 @@ def build_dataset(
     Returns:
         Dataset|tuple[Dataset]: A dataset, or datasets if is_split=True.
     """
-    data_path = _rectify_dir_paths(data_path)
+    data_dir_path = _rectify_dir_paths(data_dir)[0]
 
-    assert any(data_path.iterdir()) is True, (
-        f"The data_path: {data_path} is empty! It must contain images and annotations file."
+    assert any(data_dir_path.iterdir()) is True, (
+        f"The data_path: {data_dir_path} is empty! It must contain images and annotations file."
     )
 
     assert labeling_platform == LabelingPlatform.ROBOFLOW, (
@@ -149,25 +151,25 @@ def build_dataset(
     builder = _format2builder[format]
 
     if is_split:
-        assert (num_split_dirs := len(_get_dataset_split_dirs(data_path))) , (f"The parameter is_split was set to True but only {num_split_dirs} splits were identified.")
+        assert (num_split_dirs := len(_get_dataset_split_dirs(data_dir_path))) , (f"The parameter is_split was set to True but only {num_split_dirs} splits were identified.")
 
         split_paths = [
             sub_path
-            for sub_path in data_path.iterdir()
+            for sub_path in data_dir_path.iterdir()
             if sub_path.is_dir()
         ]
         return [
             builder(
                 split_path,
                 labeling_platform,
-                name=data_path.stem + " " + split_path.stem,
+                name=data_dir_path.stem + " " + split_path.stem,
             )
             for split_path in split_paths
         ]
 
     else:
         return builder(
-            data_path=data_path,
+            data_path=data_dir_path,
             labeling_platform=labeling_platform,
-            name=data_path.stem,
+            name=data_dir_path.stem,
         )

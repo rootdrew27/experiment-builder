@@ -6,17 +6,17 @@ class Metadata(object):
         self.fname2data = fname2value
         self.fnames = list(fname2value.keys())
         self.items = list(fname2value.items())
-        self.format = None
+        self.format:str
 
-    def _getitem_by_index(self, id:int):
+    def _getitem_by_index(self, id:int) -> tuple[str, dict]:
         fname, data = self.items[id]
         return fname, data
 
-    def _getitem_by_name(self, id:str):
+    def _getitem_by_name(self, id:str) -> tuple[str, dict]:
         fname, data = id, self.fname2data[id]
         return fname, data
 
-    def __getitem__(self, id:str|int):
+    def __getitem__(self, id:str|int) -> tuple[str, dict]:
         if isinstance(id, int):
             item = self._getitem_by_index(id)
         if isinstance(id, str):
@@ -27,7 +27,7 @@ class Metadata(object):
         
         return item
     
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.fnames)
     
 class CocoMetadata(Metadata):
