@@ -43,8 +43,8 @@ def _get_tags_coco(annot_img: dict, all_tags: list) -> list:
         return []
 
 
-def _build_name2value_coco(annot_data: dict) -> tuple[dict, list]:
-    name2value = {}
+def _build_name2info_coco(annot_data: dict) -> tuple[dict, list]:
+    name2info = {}
     all_tags:list[str] = []
 
     for annot_img in annot_data["images"]:
@@ -52,7 +52,7 @@ def _build_name2value_coco(annot_data: dict) -> tuple[dict, list]:
         height, width = annot_img["height"], annot_img["width"]
         tags = _get_tags_coco(annot_img, all_tags)
 
-        name2value[fname] = {
+        name2info[fname] = {
             "width": width,
             "height": height,
             "tags": tags,
@@ -60,18 +60,19 @@ def _build_name2value_coco(annot_data: dict) -> tuple[dict, list]:
             "segmentations": [],
         }
 
-    values = list(name2value.values())
+    values = list(name2info.values())
 
     for annot_mask in annot_data["annotations"]:
         img_id = annot_mask["image_id"]
+        
         category_id = annot_mask["category_id"]
-        points = annot_mask["segmentation"][0]
-        point_pairs = [[points[i], points[i + 1]] for i in range(0, len(points), 2)]
-
-        values[img_id]["segmentations"].append(point_pairs)
         values[img_id]["categories"].append(category_id)
 
-    return name2value, all_tags
+        points = annot_mask["segmentation"][0]
+        point_pairs = [[points[i], points[i + 1]] for i in range(0, len(points), 2)]
+        values[img_id]["segmentations"].append(point_pairs)
+
+    return name2info, all_tags
 
 
 def _build_metadata__coco(
@@ -89,11 +90,11 @@ def _build_metadata__coco(
     #         "The source argument must be specified as roboflow until others are implemented."
     #     )
 
-    fname2value, all_tags = _build_name2value_coco(annot_data)
+    fname2info, all_tags = _build_name2info_coco(annot_data)
 
     return CocoMetadata(
         path=annot_path,
-        fname2value=fname2value,
+        fname2info=fname2info,
         category_name2id=category_name2id,
         all_tags=all_tags,
     )

@@ -62,6 +62,7 @@ class TestDatasetCreation(unittest.TestCase):
         shutil.rmtree(cls.test_data_dir)
 
     def test_build_dataset_coco_no_splits(self):
+
         test_format = "coco-seg"
         test_data_dir = TestDatasetCreation.test_data_dir
 
@@ -71,6 +72,11 @@ class TestDatasetCreation(unittest.TestCase):
         self.assertEqual(ds.name, Path(test_data_dir).stem)
         self.assertEqual(ds.path, Path(test_data_dir))
         self.assertEqual(len(ds), 8)
+        self.assertEqual(len(ds.metadata.category_name2id), 1) # check the number of categories
+        self.assertEqual(ds.metadata.path, Path(test_data_dir)/"_annotations.coco.json")
+        self.assertEqual(len(ds.metadata.tags), 0)
+        
+        # TODO: Check metadata info on each image (tags, categories, segmentations). Perhaps use a config file to load the expected values in. 
 
         with self.assertRaises(
             AssertionError,

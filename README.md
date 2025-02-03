@@ -20,7 +20,7 @@ This package facilitates and formalizes the experimentation process for computer
     - [ ] Organization
 
 - [ ] Dataset
-    - Handle variable image shapes (use batching or padding). 
+    - [ ] Handle variable image shapes (use batching or padding). 
 
 - [ ] Metadata
     - [ ] Write tests
