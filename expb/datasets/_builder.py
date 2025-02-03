@@ -6,7 +6,7 @@ from ._utils import _rectify_dir_paths, _load_annotation_data, _get_dataset_spli
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
 
 VALID_FORMATS = ['coco-seg']
-#VALID_SOURCES = ['roboflow']
+# VALID_SOURCES = ['roboflow']
 
 
 # NOTE: Roboflow exhibits a strange and automatically creates a superclass. It is effectively ignored via the following function.
