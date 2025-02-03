@@ -1,7 +1,7 @@
 import typing
 
-LabelingPlatformOption = typing.NewType("LabelingPlatformOption", str)
+LabelingPlatformOption = typing.NewType('LabelingPlatformOption', str)
 
 
 class LabelingPlatform(object):
-    ROBOFLOW = LabelingPlatformOption("roboflow")
+	ROBOFLOW = LabelingPlatformOption('roboflow')
