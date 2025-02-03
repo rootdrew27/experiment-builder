@@ -8,7 +8,7 @@ description = "Experiment-Builder facilitates and formalizes the experimentation
 authors = [{ name = "Andrew Root", email = "root.drew27@gmail.com" }]
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["numpy", "cupy*"]
+dependencies = ["numpy", "cupy-cuda12x"]
 readme = "README.md"
 
 [tool.setuptools]
