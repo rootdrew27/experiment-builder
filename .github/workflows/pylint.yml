@@ -21,11 +21,11 @@ jobs:
         
     - name: Lint code with Ruff
       run: |
-        ruff check --exit-zero --output-format=github --target-version=py310 --statistics
+        ruff check --fix --output-format=github --target-version=py310 --statistics
         
     - name: Format code with Ruff
       run: |
-        ruff format --fix --target-version=py310 
+        ruff format --target-version=py310 
         
     - name: Run tests
       run: |
