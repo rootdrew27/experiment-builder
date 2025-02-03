@@ -3,16 +3,12 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "expb"
-description = "A description of your package"
-authors = [
-    {name = "Andrew Root", email = "root.drew27@gmail.com"}
-]
+name = "Experiment-Builder"
+description = "Experiment-Builder facilitates and formalizes the experimentation process for computer vision."
+authors = [{ name = "Andrew Root", email = "root.drew27@gmail.com" }]
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = [
-    "numpy",
-]
+dependencies = ["numpy", "cupy*"]
 readme = "README.md"
 
 [tool.setuptools]
@@ -24,14 +20,6 @@ warn_return_any = true
 disallow_untyped_defs = true
 
 [project.optional-dependencies]
-format = [
-    "ruff == 0.9.3"
-]
-
-type-checking = [
-    "mypy"
-]
-
-dev = [
-    "expb[lint, type-checking]"
-]
+formatting = ["ruff == 0.9.3"]
+type-checking = ["mypy"]
+dev = ["expb[formatting, type-checking]"]

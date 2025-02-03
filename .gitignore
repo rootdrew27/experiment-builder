@@ -3,6 +3,8 @@ __pycache__/
 .venv/
 git_notes.txt
 
+notebooks/data/
+
 *egg-info
 
 scratch*.ipynb

@@ -19,9 +19,10 @@ This package facilitates and formalizes the experimentation process for computer
     - [ ] Optimization (backend, threading)
     - [ ] Organization
 
-- [ ] Datasets API
-    - [ ] CocoSegmentation
-        - [x] MetaData 
-        - [x] Builder
-        - [ ] Visualization
+- [ ] Dataset
+    - Handle variable image shapes (use batching or padding). 
+
+- [ ] Metadata
+    - [ ] Write tests
+    - [ ] Visualization
     

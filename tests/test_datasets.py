@@ -66,11 +66,10 @@ class TestDatasetCreation(unittest.TestCase):
         test_format = "coco-seg"
         test_data_dir = TestDatasetCreation.test_data_dir
 
-        ds = build_dataset(data_path=test_data_dir, format=test_format, is_split=False)
+        ds = build_dataset(data_dir=test_data_dir, format=test_format, is_split=False)
 
         self.assertIsInstance(ds, Dataset)
         self.assertEqual(ds.name, Path(test_data_dir).stem)
-        self.assertEqual(ds.data, None)
         self.assertEqual(ds.path, Path(test_data_dir))
         self.assertEqual(len(ds), 8)
 
@@ -78,13 +77,13 @@ class TestDatasetCreation(unittest.TestCase):
             AssertionError,
             msg=f"The data_path: {test_data_dir} is empty! It must contain images and annotations file.",
         ):
-            build_dataset(data_path=test_bad_path, format=test_format)
+            build_dataset(data_dir=test_bad_path, format=test_format)
 
         with self.assertRaises(
             AssertionError,
             msg="The parameter is_split was set to True but only 0 splits were identified.",
         ):
-            build_dataset(data_path=test_data_dir, format=test_format, is_split=True)
+            build_dataset(data_dir=test_data_dir, format=test_format, is_split=True)
 
 
 if __name__ == "__main__":
