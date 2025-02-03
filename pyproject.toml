@@ -60,4 +60,4 @@ disallow_untyped_defs = true
 [project.optional-dependencies]
 formatting = ["ruff == 0.9.3"]
 type-checking = ["mypy"]
-dev = [".[formatting, type-checking]"]
+dev = ["experiment-builder[formatting, type-checking]"]
