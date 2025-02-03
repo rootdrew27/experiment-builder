@@ -2,7 +2,7 @@ from pathlib import Path
 
 from .dataset import Dataset
 from .metadata import CocoMetadata
-from ._utils import _rectify_paths, _rectify_dir_paths, _load_annotation_data, _get_dataset_split_dirs
+from ._utils import _rectify_dir_paths, _load_annotation_data, _get_dataset_split_dirs
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
 
 VALID_FORMATS = ["coco-seg"]

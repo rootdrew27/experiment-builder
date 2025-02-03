@@ -1,6 +1,5 @@
 import unittest
 import shutil
-import sys
 import io
 from contextlib import redirect_stdout
 from pathlib import Path

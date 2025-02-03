@@ -3,7 +3,6 @@ from glob import glob
 import shutil
 import urllib.request
 from pathlib import Path
-import json
 
 from ._utils import _rectify_paths, _get_dataset_split_dirs
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
