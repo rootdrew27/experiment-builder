@@ -1,11 +1,16 @@
 from pathlib import Path
 
 from .dataset import Dataset
-from .metadata import CocoSegmMetadata
+from .metadata import SegmMetadata
 from ._utils import _rectify_dir_paths, _load_annotation_data, _get_dataset_split_dirs
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
 
-VALID_FORMATS = ["coco-seg",]
+VALID_FORMATS = [
+    "coco",
+]
+VALID_TASKS = [
+    "segm",
+]
 # VALID_SOURCES = ['roboflow']
 
 
@@ -22,7 +27,9 @@ def _build_category_name2id_coco__roboflow(annot_categories: list[dict]) -> tupl
             category["supercategory"],
         )
 
-        assert name != "background", "A background category is assigned automatically, please remove or change the name of the background category."
+        assert name != "background", (
+            "A background category is assigned automatically, please remove or change the name of the background category."
+        )
         # If the category does NOT have a super category, then it IS a super category.
         if super_category == "none":
             continue
@@ -80,11 +87,13 @@ def _build_name2info_coco(annot_data: dict, oldid2newid: dict) -> tuple[dict, li
 
 def _build_metadata__coco_segm(
     annot_path: Path, labeling_platform: LabelingPlatformOption
-) -> CocoSegmMetadata:
+) -> SegmMetadata:
     annot_data = _load_annotation_data(annot_path)
 
     if labeling_platform == LabelingPlatform.ROBOFLOW:
-        categoryname2id, oldid2newid = _build_category_name2id_coco__roboflow(annot_data["categories"])
+        categoryname2id, oldid2newid = _build_category_name2id_coco__roboflow(
+            annot_data["categories"]
+        )
     # else:
     #     category_name2id = None
     #     raise ValueError(
@@ -93,7 +102,7 @@ def _build_metadata__coco_segm(
 
     fname2info, all_tags = _build_name2info_coco(annot_data, oldid2newid)
 
-    return CocoSegmMetadata(
+    return SegmMetadata(
         path=annot_path,
         fname2info=fname2info,
         categoryname2id=categoryname2id,
@@ -101,7 +110,7 @@ def _build_metadata__coco_segm(
     )
 
 
-def _builder__coco(
+def _builder__coco_segm(
     data_path: Path,
     labeling_platform: LabelingPlatformOption,
     name: str,
@@ -113,13 +122,15 @@ def _builder__coco(
     )
     return Dataset(data_path, metadata, name=name)
 
+def _builder__voc_bbox():
+    raise NotImplementedError()
 
-_format2builder = {"coco-seg": _builder__coco}
-
+_format2builder = {"coco": {"segm": _builder__coco_segm}, "voc": {"bbox": _builder__voc_bbox}}
 
 def build_dataset(
     data_dir: str | Path,
     format: str,
+    task: str,
     labeling_platform: LabelingPlatformOption = LabelingPlatform.ROBOFLOW,
     is_split: bool = False,
 ) -> Dataset | list[Dataset]:
@@ -148,7 +159,11 @@ def build_dataset(
         f"The format ({format}) is not one of the valid formats: {VALID_FORMATS}"
     )
 
-    builder = _format2builder[format]
+    assert task in VALID_TASKS, f"The task ({task}) is not one of the valid tasks: {VALID_TASKS}"
+
+    builder = _format2builder[format].get(task, None)
+
+    assert builder is not None, (f"The task type ({task}) is not valid with the format ({format}). Please choose from {list(_format2builder[format].keys())}")
 
     if is_split:
         assert (num_split_dirs := len(_get_dataset_split_dirs(data_dir_path))), (
@@ -159,7 +174,7 @@ def build_dataset(
         return [
             builder(
                 split_path,
-                labeling_platform,
+                labeling_platform=labeling_platform,
                 name=data_dir_path.stem + " " + split_path.stem,
             )
             for split_path in split_paths

@@ -72,8 +72,7 @@ class _Dataset(object):
                 return data, fname, metavalue
 
             else:
-                data.setflags(write=True)
-                tensor = torch.from_numpy(data)
+                tensor = torch.from_numpy(data.copy())
                 label = self.metadata._get_label(id)
                 if self.transform:
                     data = self.transform(data)
@@ -81,10 +80,9 @@ class _Dataset(object):
                     label = self.target_transform(label)
                 return tensor, label
 
-        except ValueError as ve:
-            raise ve
         except IndexError:
             raise IndexError(f"The key ({id}) did not match an entry.")
+        
 
     def __iter__(self) -> Iterator:
         return DatasetIterator(dataset=self)

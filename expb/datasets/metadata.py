@@ -50,8 +50,8 @@ class Metadata(object):
         raise NotImplementedError()
 
 
-class CocoSegmMetadata(Metadata):
-    """An object to store and manage the metadata of a dataset. This class defines a categoryname2id dictionary which simultaneously encodes the class heirarchy (i.e. a category with a larger category number with take precedence in the case of overlapping segmentations). The CocoSegmMetadata.fname2info dict has the following format:
+class SegmMetadata(Metadata):
+    """An object to store and manage the metadata of a dataset. This class defines a categoryname2id dictionary which simultaneously encodes the class heirarchy (i.e. a category with a larger category number with take precedence in the case of overlapping segmentations). The SegmMetadata.fname2info dict has the following format:
     ```
     {
         <file_name:str> : {
@@ -70,7 +70,7 @@ class CocoSegmMetadata(Metadata):
         self, path: Path, fname2info: dict, categoryname2id: Dict[str, int], all_tags: list[str]
     ):
         super().__init__(path, fname2info)
-        self.format = "coco"
+        self.task = "segm"
         self.categoryname2id = categoryname2id
         self.all_tags = all_tags
 
@@ -86,7 +86,6 @@ class CocoSegmMetadata(Metadata):
         self.categoryname2id = hierarchy
 
     def _build_mask(self, segm: list[list[float]], img_w: int, img_h: int) -> np.ndarray:
-        print(type(segm[0]))
         mask = Image.new("L", (img_w, img_h), 0)  # creates a new image with all pixels set to 0
         ImageDraw.Draw(mask).polygon(segm, outline=1, fill=1)
         return np.array(mask, dtype=np.uint8)

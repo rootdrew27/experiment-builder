@@ -16,7 +16,7 @@ from expb import VALID_FORMATS
 from expb import extract_zip_dataset
 from expb import LabelingPlatform
 from expb.datasets.dataset import Dataset
-from expb.datasets.metadata import CocoSegmMetadata
+from expb.datasets.metadata import SegmMetadata
 
 test_zip_path = r".\tests\data\FOD Objects.v4i.coco-segmentation.zip"
 
@@ -53,9 +53,10 @@ class TestDatasetExtraction(TestCase):
         self.assertEqual(len([path for path in Path(test_data_dir).iterdir() if path.is_dir()]), 0)
 
 
-class TestDatasetWithCocoSegmMetadata(TestCase):
+class TestDatasetWithSegmMetadata(TestCase):
     test_data_dir = r".\tests\data\test_data_path2"
-    test_format = "coco-seg"
+    test_format = "coco"
+    test_task = "segm"
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -72,16 +73,17 @@ class TestDatasetWithCocoSegmMetadata(TestCase):
         shutil.rmtree(cls.test_data_dir)
 
     def test_build_dataset_coco_no_splits(self) -> None:
-        test_format = TestDatasetWithCocoSegmMetadata.test_format
-        test_data_dir = TestDatasetWithCocoSegmMetadata.test_data_dir
+        test_data_dir = TestDatasetWithSegmMetadata.test_data_dir
+        test_format = TestDatasetWithSegmMetadata.test_format
+        test_task = TestDatasetWithSegmMetadata.test_task
 
-        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, is_split=False)
+        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, task=test_task, is_split=False)
 
         self.assertIsInstance(ds, Dataset)
         self.assertEqual(ds.name, Path(test_data_dir).stem)
         self.assertEqual(ds.path, Path(test_data_dir))
         self.assertEqual(len(ds), 8)
-        self.assertIsInstance(ds.metadata, CocoSegmMetadata)
+        self.assertIsInstance(ds.metadata, SegmMetadata)
         self.assertEqual(
             len(ds.metadata.categoryname2id), 3
         )  # check the number of categories. Super categories are ignored, but a background class is added.
@@ -94,13 +96,16 @@ class TestDatasetWithCocoSegmMetadata(TestCase):
             AssertionError,
             msg=f"The data_path: {test_data_dir} is empty! It must contain images and annotations file.",
         ):
-            build_dataset(data_dir=test_bad_path, format=test_format)
+            build_dataset(data_dir=test_bad_path, format=test_format, task=test_task)
 
         with self.assertRaises(
             AssertionError,
             msg="The parameter is_split was set to True but only 0 splits were identified.",
         ):
-            build_dataset(data_dir=test_data_dir, format=test_format, is_split=True)
+            build_dataset(data_dir=test_data_dir, format=test_format, task=test_task, is_split=True)
+
+        with self.assertRaises(AssertionError):
+            build_dataset(data_dir=test_data_dir, format=test_format, task="bbox")
 
     # def test_cls_hierarchy(self):
     #     test_format = TestDatasetWithCocoSegmMetaData.test_format
@@ -109,10 +114,11 @@ class TestDatasetWithCocoSegmMetadata(TestCase):
     #     ds:Dataset = build_dataset(data_dir=test_data_dir, format=test_format, is_split=False)
 
     def test_dataset_iteration(self):
-        test_format = TestDatasetWithCocoSegmMetadata.test_format
-        test_data_dir = TestDatasetWithCocoSegmMetadata.test_data_dir
+        test_format = TestDatasetWithSegmMetadata.test_format
+        test_data_dir = TestDatasetWithSegmMetadata.test_data_dir
+        test_task = TestDatasetWithSegmMetadata.test_task
 
-        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, is_split=False)
+        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, task=test_task, is_split=False)
 
         for i, datum in enumerate(ds):
             self.assertEqual(len(datum), 3)
@@ -132,10 +138,11 @@ class TestDatasetWithCocoSegmMetadata(TestCase):
             self.assertIs(fname, fname2)
 
     def test_torch_support(self):
-        test_format = TestDatasetWithCocoSegmMetadata.test_format
-        test_data_dir = TestDatasetWithCocoSegmMetadata.test_data_dir
+        test_format = TestDatasetWithSegmMetadata.test_format
+        test_data_dir = TestDatasetWithSegmMetadata.test_data_dir
+        test_task = TestDatasetWithSegmMetadata.test_task
 
-        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, is_split=False)
+        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, task=test_task, is_split=False)
 
         ds.torch()
         self.assertTrue(ds.for_torch)
@@ -147,12 +154,13 @@ class TestDatasetWithCocoSegmMetadata(TestCase):
         # TODO: Test with Dataloader
 
     def test_setting_cls_hieracrchy(self):
-        test_format = TestDatasetWithCocoSegmMetadata.test_format
-        test_data_dir = TestDatasetWithCocoSegmMetadata.test_data_dir
+        test_format = TestDatasetWithSegmMetadata.test_format
+        test_data_dir = TestDatasetWithSegmMetadata.test_data_dir
+        test_task = TestDatasetWithSegmMetadata.test_task
 
-        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, is_split=False)
+        ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, task=test_task, is_split=False)
         # define category hierarchy
-        cat_hierarchy = {"misc": 1, "FO": 2} # typically the background will be class 0
+        cat_hierarchy = {"misc": 1, "FO": 2} # background class will be automatically set to 0
         ds.metadata.set_category_hierarchy(hierarchy=cat_hierarchy)
         label_0 = ds.metadata._get_label(6)
         self.assertIn(0, label_0)
