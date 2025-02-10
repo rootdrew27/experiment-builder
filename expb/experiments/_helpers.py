@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-def _setup_logger(log_path:Path|str, log_level:int, name:str=None):
+def _setup_logger(log_path:Path|str, log_level:int, name:str|None=None):
     name = __name__ if name is None else name
     logger = logging.getLogger(name)
     # console_handler = logging.StreamHandler()

@@ -1,8 +1,7 @@
 from pathlib import Path
-from typing import Dict, Union, Sequence
+from typing import Dict
 import json
 
-from torch import Tensor
 import numpy as np
 from PIL import Image, ImageDraw
 

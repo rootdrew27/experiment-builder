@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict, Callable
 
 from .dataset import Dataset
 from .metadata import SegmMetadata
@@ -122,10 +123,18 @@ def _builder__coco_segm(
     )
     return Dataset(data_path, metadata, name=name)
 
-def _builder__voc_bbox():
+
+def _builder__voc_bbox(
+    data_path: Path, labeling_platform: LabelingPlatformOption, name: str
+) -> Dataset:
     raise NotImplementedError()
 
-_format2builder = {"coco": {"segm": _builder__coco_segm}, "voc": {"bbox": _builder__voc_bbox}}
+
+_format2builder: Dict[str, Dict[str, Callable[[Path, LabelingPlatformOption, str], Dataset]]] = {
+    "coco": {"segm": _builder__coco_segm},
+    "voc": {"bbox": _builder__voc_bbox},
+}
+
 
 def build_dataset(
     data_dir: str | Path,
@@ -161,9 +170,11 @@ def build_dataset(
 
     assert task in VALID_TASKS, f"The task ({task}) is not one of the valid tasks: {VALID_TASKS}"
 
-    builder = _format2builder[format].get(task, None)
+    builder = _format2builder.get(format, {}).get(task, None)
 
-    assert builder is not None, (f"The task type ({task}) is not valid with the format ({format}). Please choose from {list(_format2builder[format].keys())}")
+    assert builder is not None, (
+        f"The task type ({task}) is not valid with the format ({format}). Please choose from {list(_format2builder[format].keys())}"
+    )
 
     if is_split:
         assert (num_split_dirs := len(_get_dataset_split_dirs(data_dir_path))), (
@@ -174,15 +185,15 @@ def build_dataset(
         return [
             builder(
                 split_path,
-                labeling_platform=labeling_platform,
-                name=data_dir_path.stem + " " + split_path.stem,
+                labeling_platform,
+                data_dir_path.stem + " " + split_path.stem,
             )
             for split_path in split_paths
         ]
 
     else:
         return builder(
-            data_path=data_dir_path,
-            labeling_platform=labeling_platform,
-            name=data_dir_path.stem,
+            data_dir_path,
+            labeling_platform,
+            data_dir_path.stem,
         )
