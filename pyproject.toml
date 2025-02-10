@@ -8,7 +8,7 @@ description = "Facilitates and formalizes the experimentation process for comput
 authors = [{ name = "Andrew Root", email = "root.drew27@gmail.com" }]
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["numpy", "cupy-cuda12x", "opencv-python"]
+dependencies = ["numpy", "cupy-cuda12x", "pillow"]
 readme = "README.md"
 
 [tool.setuptools]
@@ -43,12 +43,12 @@ exclude = [
     "node_modules",
     "site-packages",
     "venv",
-] # NOTE: ruff ignore files that are ignored by git
+] # NOTE: ruff ignores files that are ignored by git
 target-version = "py310"
 
 [tool.ruff.format]
-quote-style = "single"
-indent-style = "tab"
+quote-style = "double"
+indent-style = "space"
 line-ending = "auto"
 docstring-code-format = true
 
