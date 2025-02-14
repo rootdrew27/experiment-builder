@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterator, Any, Dict
+from typing import Iterator, Any, Dict, Union
 from typing_extensions import Self
 
 import numpy as np
@@ -8,14 +8,14 @@ from PIL import Image
 import torch
 from torch import Tensor
 
-from .metadata import Metadata
+from ._typing import AnyMetadata, MetadataWithLabel
 
 
 class _Dataset(object):
     def __init__(
         self,
         path: Path,
-        metadata: Metadata,
+        metadata: AnyMetadata,
         for_torch: bool = False,
         transform: Any | None = None,
         target_transform: Any | None = None,
@@ -72,6 +72,7 @@ class _Dataset(object):
                 return data, fname, metavalue
 
             else:
+                assert isinstance(self.metadata, MetadataWithLabel) # NOTE: This will never be hit right now. Yet it is necessary to appease the MyPy gods.
                 tensor = torch.from_numpy(data.copy())
                 label = self.metadata._get_label(id)
                 if self.transform:

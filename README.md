@@ -7,7 +7,7 @@ This package facilitates and formalizes the experimentation process for computer
 ## Conceptual Structure (Core)
 
 - **Experiment** The core element of this package, experiments are designed through, managed by, and run with this class.  
-- **Dataset** Objects of this class are essentially beefy wrappers of NumPy arrays.
+- **Dataset** Objects of this class are essentially beefy wrappers of NumPy arrays. They are interfaces to data and metadata of the dataset.
 - **Action** Actions are an extensible interface that provide predictable and efficient operations to use on Dataset objects.
 
 

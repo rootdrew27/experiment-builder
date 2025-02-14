@@ -1,15 +1,14 @@
 from pathlib import Path
 from typing import Any
 
+from ._typing import MetadataWithLabel, AnyMetadata
 from ._dataset import _Dataset
-from .metadata import Metadata
-
 
 class Dataset(_Dataset):
     def __init__(
         self,
         path: Path,
-        metadata: Metadata,
+        metadata: AnyMetadata,
         for_torch: bool = False,
         transform: Any | None = None,
         target_transform: Any | None = None,
@@ -39,18 +38,14 @@ class Dataset(_Dataset):
         print(self.metadata)
 
     def get_label(self, id:int|str):
+        assert isinstance(self.metadata, MetadataWithLabel)
         return self.metadata._get_label(id)
     
     def display_label(self, id:int|str):
+        assert isinstance(self.metadata, MetadataWithLabel)
         self.metadata._display_label(id)
 
     def torch(self, for_torch: bool = True) -> None:
-        # check if this Dataset's Metadata implements a _get_label function # TODO: move this to _Dataset.__getitem__()
-        try:
-            self.metadata._get_label(0)
-        except NotImplementedError:
-            raise NotImplementedError(
-                "This Dataset does not contain a MetaData object that implements _get_label(). Thus, torch can not be used."
-            )
-
+        # check if this Dataset's Metadata implements a _get_label function # To allow Datasets with Tensors (but no labels) move this to _Dataset.__getitem__()
+        assert isinstance(self.metadata, MetadataWithLabel), ("This Dataset does not contain a Metadata object that implements _get_label(). Thus, torch can not be used.")
         self.for_torch = for_torch

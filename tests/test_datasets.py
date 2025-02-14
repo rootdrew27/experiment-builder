@@ -159,10 +159,12 @@ class TestDatasetWithSegmMetadata(TestCase):
         test_task = TestDatasetWithSegmMetadata.test_task
 
         ds: Dataset = build_dataset(data_dir=test_data_dir, format=test_format, task=test_task, is_split=False)
+        self.assertEqual(len(ds.metadata.categoryname2id), 3)
         # define category hierarchy
         cat_hierarchy = {"misc": 1, "FO": 2} # background class will be automatically set to 0
         ds.metadata.set_category_hierarchy(hierarchy=cat_hierarchy)
-        label_0 = ds.metadata._get_label(6)
+        self.assertEqual(len(ds.metadata.categoryname2id), 3)
+        label_0 = ds.get_label(6)
         self.assertIn(0, label_0)
         self.assertIn(1, label_0)
         self.assertIn(2, label_0)

@@ -43,15 +43,6 @@ class Metadata(object):
 
         return item
 
-    def _get_label(self, id: int | str) -> np.ndarray:
-        raise NotImplementedError()
-
-    def _display_label(self, id: int | str) -> None:
-        raise NotImplementedError()
-
-    def set_category_hierarchy(self, hierarchy: Dict[str, int]) -> None:
-        raise NotImplementedError()
-
 
 class SegmMetadata(Metadata):
     """An object to store and manage the metadata of a dataset. This class defines a categoryname2id dictionary which simultaneously encodes the class heirarchy (i.e. a category with a larger category number with take precedence in the case of overlapping segmentations). The SegmMetadata.fname2info dict has the following format:
