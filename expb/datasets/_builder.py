@@ -21,7 +21,8 @@ def _build_category_name2id_coco__roboflow(annot_categories: list[dict]) -> tupl
     name2id = {"background": 0}
     old2new = {}
 
-    for i, category in enumerate(annot_categories, 1):
+    c_id = 1
+    for category in annot_categories:
         name, id, super_category = (
             category["name"],
             category["id"],
@@ -29,15 +30,17 @@ def _build_category_name2id_coco__roboflow(annot_categories: list[dict]) -> tupl
         )
 
         assert name != "background", (
-            "A background category is assigned automatically, please remove or change the name of the background category."
+            "A background category is assigned automatically, please remove or change the name of the background category in your dataset." # TODO: implement annotation utilies to handle changing class names
         )
         # If the category does NOT have a super category, then it IS a super category.
         if super_category == "none":
             continue
 
         else:
-            name2id[name] = i
-            old2new[id] = i
+            name2id[name] = c_id
+            old2new[id] = c_id
+
+        c_id += 1
 
     return name2id, old2new
 

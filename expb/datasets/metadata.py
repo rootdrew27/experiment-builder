@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict
 import json
 
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageDraw
 
@@ -45,6 +46,9 @@ class Metadata(object):
     def _get_label(self, id: int | str) -> np.ndarray:
         raise NotImplementedError()
 
+    def _display_label(self, id: int | str) -> None:
+        raise NotImplementedError()
+
     def set_category_hierarchy(self, hierarchy: Dict[str, int]) -> None:
         raise NotImplementedError()
 
@@ -74,7 +78,7 @@ class SegmMetadata(Metadata):
         self.all_tags = all_tags
 
     def set_category_hierarchy(self, hierarchy: Dict[str, int]) -> None:
-        # TODO: assert hierarchy values are unique
+        # TODO: assert hierarchy values are unique and are sequential
         # ignore supercategories
         old2new = {self.categoryname2id[k]: v for k, v in hierarchy.items()}
         for info in self.infos:
@@ -82,7 +86,7 @@ class SegmMetadata(Metadata):
             for i, cat_num in enumerate(categories):
                 categories[i] = old2new[cat_num]
 
-        self.categoryname2id = hierarchy
+        self.categoryname2id.update(hierarchy) 
 
     def _build_mask(self, segm: list[list[float]], img_w: int, img_h: int) -> np.ndarray:
         mask = Image.new("L", (img_w, img_h), 0)  # creates a new image with all pixels set to 0
@@ -107,3 +111,12 @@ class SegmMetadata(Metadata):
             )  # categories are numbered such that bigger numbers take precedence in the case of overlaps.
 
         return mask
+
+    def _display_label(self, id: int | str) -> None:
+        label = self._get_label(id)
+        max_cat_id = len(self.categoryname2id) - 1
+        adj_label = label * (255 / max_cat_id)
+        plt.imshow(adj_label, vmin=0, vmax=255, cmap="viridis")
+
+
+# plt_cfg = {"vmin": 0, "vmax": 255, "cmap": "viridis"}

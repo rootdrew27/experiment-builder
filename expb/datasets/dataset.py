@@ -38,6 +38,12 @@ class Dataset(_Dataset):
     def display_metadata(self) -> None:
         print(self.metadata)
 
+    def get_label(self, id:int|str):
+        return self.metadata._get_label(id)
+    
+    def display_label(self, id:int|str):
+        self.metadata._display_label(id)
+
     def torch(self, for_torch: bool = True) -> None:
         # check if this Dataset's Metadata implements a _get_label function # TODO: move this to _Dataset.__getitem__()
         try:
