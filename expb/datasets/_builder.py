@@ -17,7 +17,7 @@ VALID_TASKS = [
 
 # NOTE: Roboflow exhibits a strange and automatically creates a superclass. It is effectively ignored via the following function.
 # Revisions will need to be made when roboflow changes this behavior.
-def _build_category_name2id_coco__roboflow(annot_categories: list[dict]) -> tuple[dict, dict]:
+def _build_categoryname2id_coco__roboflow(annot_categories: list[dict]) -> tuple[dict, dict]:
     name2id = {"background": 0}
     old2new = {}
 
@@ -95,7 +95,7 @@ def _build_metadata__coco_segm(
     annot_data = _load_annotation_data(annot_path)
 
     if labeling_platform == LabelingPlatform.ROBOFLOW:
-        categoryname2id, oldid2newid = _build_category_name2id_coco__roboflow(
+        categoryname2id, oldid2newid = _build_categoryname2id_coco__roboflow(
             annot_data["categories"]
         )
     # else:

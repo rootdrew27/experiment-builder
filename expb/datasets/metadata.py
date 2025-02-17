@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 
 class Metadata(object):
-    def __init__(self, path: Path, fname2info: Dict[str, Dict]):
+    def __init__(self, path: Path | None, fname2info: Dict[str, Dict]):
         self.path = path
         self.fname2info = fname2info
         # NOTE: having the following lists is not memory effective
@@ -43,9 +43,12 @@ class Metadata(object):
 
         return item
 
+    def _new_metadata(self, fname2info: Dict):
+        raise NotImplementedError()
+
 
 class SegmMetadata(Metadata):
-    """An object to store and manage the metadata of a dataset. This class defines a categoryname2id dictionary which simultaneously encodes the class heirarchy (i.e. a category with a larger category number with take precedence in the case of overlapping segmentations). The SegmMetadata.fname2info dict has the following format:
+    """An object to store and manage the metadata of a dataset. This class defines a categoryname2id dictionary which simultaneously maps each category name to an integer and encodes the class heirarchy (i.e. a category with a larger category number with take precedence in the case of overlapping segmentations). The SegmMetadata.fname2info dict has the following format:
     ```
     {
         <file_name:str> : {
@@ -61,7 +64,7 @@ class SegmMetadata(Metadata):
     """
 
     def __init__(
-        self, path: Path, fname2info: dict, categoryname2id: Dict[str, int], all_tags: list[str]
+        self, path: Path | None, fname2info: dict, categoryname2id: Dict[str, int], all_tags: list[str]
     ):
         super().__init__(path, fname2info)
         self.task = "segm"
@@ -77,7 +80,7 @@ class SegmMetadata(Metadata):
             for i, cat_num in enumerate(categories):
                 categories[i] = old2new[cat_num]
 
-        self.categoryname2id.update(hierarchy) 
+        self.categoryname2id.update(hierarchy)
 
     def _build_mask(self, segm: list[list[float]], img_w: int, img_h: int) -> np.ndarray:
         mask = Image.new("L", (img_w, img_h), 0)  # creates a new image with all pixels set to 0
@@ -108,6 +111,16 @@ class SegmMetadata(Metadata):
         max_cat_id = len(self.categoryname2id) - 1
         adj_label = label * (255 / max_cat_id)
         plt.imshow(adj_label, vmin=0, vmax=255, cmap="viridis")
+
+    def _new_metadata(self, fname2info: Dict):
+        # drop categories no longer present
+
+        return SegmMetadata(
+            None,
+            fname2info=fname2info,
+            categoryname2id=self.categoryname2id,
+            all_tags=self.all_tags,
+        )
 
 
 # plt_cfg = {"vmin": 0, "vmax": 255, "cmap": "viridis"}
