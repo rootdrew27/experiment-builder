@@ -1,10 +1,9 @@
-import zipfile
 from glob import glob
 import shutil
 import urllib.request
 from pathlib import Path
 
-from ._utils import _rectify_paths, _get_dataset_split_dirs
+from ._utils import _rectify_paths, _get_dataset_split_dirs, _extract_zip
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
 
 
@@ -12,18 +11,6 @@ def fix_data_folder_structure(dest_path: Path) -> None:
     for file_path in glob(str(dest_path / "train" / "*")):
         shutil.move(file_path, dest_path)
     (dest_path / "train").rmdir()
-
-
-def _extract_zip(src_path: Path | str, dest_path: Path) -> None:
-    zf = zipfile.ZipFile(src_path)
-
-    if zf.testzip() is not None:
-        raise zipfile.BadZipFile("The zip file is corrupt.")
-
-    else:
-        print(f"Extracting zip file to {dest_path}.")
-        zf.extractall(dest_path)
-        zf.close()
 
 
 def extract_zip_dataset(

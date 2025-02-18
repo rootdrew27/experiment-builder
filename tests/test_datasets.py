@@ -19,7 +19,7 @@ from expb.datasets.dataset import Dataset
 from expb.datasets.metadata import SegmMetadata
 from expb.datasets.by import By
 
-test_zip_path = r".\tests\data\FOD Objects.v4i.coco-segmentation.zip"
+test_zip_path = r".\tests\data\FOD Objects.v5i.coco-segmentation.zip"
 
 test_bad_path = r"tests\data\sadkfjskf"
 test_formats = VALID_FORMATS
@@ -91,7 +91,7 @@ class TestDatasetWithSegmMetadata(TestCase):
             len(ds.metadata.categoryname2id), 3
         )  # check the number of categories. Super categories are ignored, but a background class is added.
         self.assertEqual(ds.metadata.path, Path(self.test_data_dir) / "_annotations.coco.json")
-        self.assertEqual(len(ds.metadata.all_tags), 0)
+        self.assertEqual(len(ds.metadata.all_tags), 1)
 
         # TODO: Check metadata info on each image (tags, categories, segmentations). Perhaps use a config file to load the expected values in.
 

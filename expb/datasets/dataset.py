@@ -93,7 +93,6 @@ class Dataset(_Dataset):
 
     def new_dataset(self, new_metadata):
         new_dataset = copy(self)
-        new_dataset.path = None
         new_dataset.metadata = new_metadata
         new_dataset.name = self.name + " Subset"
         new_dataset.device = self.device

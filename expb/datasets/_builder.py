@@ -48,7 +48,7 @@ def _build_categoryname2id_coco__roboflow(annot_categories: list[dict]) -> tuple
 def _get_tags_coco(annot_img: dict, all_tags: list) -> list:
     extra = annot_img.get("extra", False)
     if extra:
-        tags: list = annot_img.get("user_tags", [])
+        tags: list = extra.get("user_tags", [])
         for tag in tags:
             if tag not in all_tags:
                 all_tags.append(tag)
