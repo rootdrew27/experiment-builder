@@ -1,5 +1,9 @@
 from pathlib import Path
 from typing import Dict, Callable
+from tempfile import TemporaryFile
+
+import cv2
+import numpy as np
 
 from .dataset import Dataset
 from .metadata import SegmMetadata
@@ -113,6 +117,18 @@ def _build_metadata__coco_segm(
         all_tags=all_tags,
     )
 
+def _load_imgs_as_mmap(data_path:Path):
+    imgs = []
+    for file_path in data_path.iterdir():
+        if file_path.suffix in ['.png', '.jpg', '.jpeg']:
+            imgs.append(cv2.imread(str(file_path)))
+    data = np.stack(imgs)
+    file = TemporaryFile()
+    mm = np.memmap(file, dtype=data.dtype, mode="w+", shape=data.shape)
+    mm[:] = data[:]
+    mm.flush()
+    return mm
+    
 
 def _builder__coco_segm(
     data_path: Path,
@@ -124,7 +140,10 @@ def _builder__coco_segm(
     metadata = _build_metadata__coco_segm(
         annot_path=annot_path, labeling_platform=labeling_platform
     )
-    return Dataset(data_path, metadata, name=name)
+
+    data = _load_imgs_as_mmap(data_path)
+
+    return Dataset(data, data_path, metadata, name=name)
 
 
 def _builder__voc_bbox(

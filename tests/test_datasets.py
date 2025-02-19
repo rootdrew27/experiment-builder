@@ -83,6 +83,7 @@ class TestDatasetWithSegmMetadata(TestCase):
         ds: Dataset = build_dataset(data_dir=self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
 
         self.assertIsInstance(ds, Dataset)
+        self.assertIsInstance(ds._data, np.memmap)
         self.assertEqual(ds.name, Path(self.test_data_dir).stem)
         self.assertEqual(ds.path, Path(self.test_data_dir))
         self.assertEqual(len(ds), 8)
@@ -152,10 +153,12 @@ class TestDatasetWithSegmMetadata(TestCase):
         cat_hierarchy = {"misc": 1, "FO": 2} # background class will be automatically set to 0
         ds.metadata.set_category_hierarchy(hierarchy=cat_hierarchy)
         self.assertEqual(len(ds.metadata.categoryname2id), 3)
-        label_0 = ds.get_label(6)
-        self.assertIn(0, label_0)
-        self.assertIn(1, label_0)
-        self.assertIn(2, label_0)
+        label_1 = ds.get_label(1)
+        self.assertIn(0, label_1)
+        self.assertIn(2, label_1)
+        label_3 = ds.get_label(3)
+        self.assertIn(1, label_3)
+        self.assertIn(2, label_3)
 
     def test_subset(self):
 
@@ -179,6 +182,9 @@ class TestDatasetWithSegmMetadata(TestCase):
         self.assertNotIn("BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg", no_misc.metadata.fnames)
         self.assertEqual(len(no_misc), 6)
 
+        exlcudes_ignore = ds.subset(by=By.TAG, value="ignore", complement=True)
+        self.assertEqual(len(exlcudes_ignore), 7)
+        self.assertNotIn("ClampPart1a_frame_000032_png.rf.40aed52812528fa29028b95931043e8b.jpg", exlcudes_ignore.metadata.fnames)
 
 if __name__ == "__main__":
     unittest.main()

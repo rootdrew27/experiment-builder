@@ -1,15 +1,23 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Sequence
 from typing_extensions import Self
 from copy import copy
+from tempfile import TemporaryFile
+
+import numpy as np
+from torch import Tensor
+
+from expb.datasets.metadata import Metadata
 
 from ._typing import MetadataWithLabel, AnyMetadata
 from ._dataset import _Dataset
-from .by import By, ByOption
+from .by import ByOption
+
 
 class Dataset(_Dataset):
     def __init__(
         self,
+        data: np.memmap | np.ndarray | Tensor,
         path: Path,
         metadata: AnyMetadata,
         for_torch: bool = False,
@@ -17,40 +25,32 @@ class Dataset(_Dataset):
         target_transform: Any | None = None,
         name: str | None = None,
     ) -> None:
-        self.path = path
-        self.metadata = metadata
-        self.name = name
-        self.device = "cpu"  # or 'cuda'
-        self.for_torch = for_torch
-        self.transform = transform
-        self.target_transform = target_transform
+        super().__init__(data, path, metadata, for_torch, transform, target_transform, name)
 
-    # def load(self, device: str) -> None:
-    #     if hasattr(self, "_data") is False:
-    #         self._load(device)
-    #     elif device != self.device:
-    #         self._to(device)
-    #     else:
-    #         print(f"Dataset is already loaded onto ({self._data.device})")
+    def cache(self, cache: bool) -> None:
+        self._cache(cache)
 
     def to(self, device: str) -> None:
         assert device in ["cpu", "cuda"], "Device must be one of ['cpu', 'cuda']"
         self._to(device)
 
+    # TODO: Make this pretty
     def display_metadata(self) -> None:
         print(self.metadata)
 
-    def get_label(self, id:int|str):
+    def get_label(self, id: int | str):
         assert isinstance(self.metadata, MetadataWithLabel)
         return self.metadata._get_label(id)
-    
-    def display_label(self, id:int|str):
+
+    def display_label(self, id: int | str):
         assert isinstance(self.metadata, MetadataWithLabel)
         self.metadata._display_label(id)
 
     def torch(self, for_torch: bool = True) -> None:
         # check if this Dataset's Metadata implements a _get_label function # To allow Datasets with Tensors (but no labels) move this to _Dataset.__getitem__()
-        assert isinstance(self.metadata, MetadataWithLabel), ("This Dataset does not contain a Metadata object that implements _get_label(). Thus, torch can not be used.")
+        assert isinstance(self.metadata, MetadataWithLabel), (
+            "This Dataset does not contain a Metadata object that implements _get_label(). Thus, torch can not be used."
+        )
         self.for_torch = for_torch
 
     def subset(
@@ -81,20 +81,47 @@ class Dataset(_Dataset):
         if return_both:
             subset, subset_c = self._subset_and_complement(condition)
             if complement:
-                return self.new_dataset(subset_c)
+                return self.new_dataset(new_metadata=subset_c)
             else:
-                return self.new_dataset(subset), self.new_dataset(subset_c)
+                return self.new_dataset(new_metadata=subset), self.new_dataset(
+                    new_metadata=subset_c
+                )
         elif complement:
             subset_c = self._subset_complement(condition)
-            return self.new_dataset(subset_c)
+            return self.new_dataset(new_metadata=subset_c)
         else:
             subset = self._subset(condition)
-            return self.new_dataset(subset)
+            return self.new_dataset(new_metadata=subset)
 
-    def new_dataset(self, new_metadata):
+    def apply(
+        self,
+        action: Callable | list[Callable],
+        action_params: Dict[str, Any] | list[Dict[str, Any]],
+        return_dataset: bool,
+    ) -> Self | Any:
+        result = self._apply(action, action_params)
+        if return_dataset:
+            return self.new_dataset(new_data=result)
+        else:
+            return result
+
+    # TODO: move to helpers or builder or _dataset
+    # TODO: clean logic
+    def new_dataset(
+        self, new_data: None | np.ndarray | np.memmap = None, new_metadata: None | Metadata = None
+    ):
         new_dataset = copy(self)
-        new_dataset.metadata = new_metadata
-        new_dataset.name = self.name + " Subset"
-        new_dataset.device = self.device
+        if new_data:
+            if isinstance(new_data, np.ndarray):
+                file = TemporaryFile()
+                fp = np.memmap(file, dtype=new_data.dtype, mode="w+", shape=new_data.shape)
+                fp[:] = new_data[:]
+                fp.flush()
+                self._data = fp
+            elif isinstance(new_data, np.memmap):
+                self._data = new_data
+
+        if new_metadata:
+            new_dataset.metadata = new_metadata
+
         return new_dataset
-        

@@ -1,12 +1,16 @@
+from ast import Call
 from pathlib import Path
 from typing import Iterator, Any, Dict, Callable
 from typing_extensions import Self
+from tempfile import TemporaryFile
 
 import numpy as np
 import cupy as cp  # type: ignore
 from PIL import Image
 import torch
 from torch import Tensor
+
+from expb.datasets.metadata import Metadata
 
 from ._typing import AnyMetadata, MetadataWithLabel
 from .by import By, ByOption
@@ -15,6 +19,7 @@ from .by import By, ByOption
 class _Dataset(object):
     def __init__(
         self,
+        data: np.memmap | np.ndarray | Tensor,
         path: Path,
         metadata: AnyMetadata,
         for_torch: bool = False,
@@ -22,7 +27,7 @@ class _Dataset(object):
         target_transform: Any | None = None,
         name: str | None = None,
     ) -> None:
-        self._data: np.ndarray | Tensor
+        self._data: np.ndarray | np.memmap | Tensor = data
         self.path = path
         self.metadata = metadata
         self.name = name
@@ -39,19 +44,12 @@ class _Dataset(object):
     def __len__(self) -> int:
         return len(self.metadata)
 
-    def _load_img(self, fname: str) -> np.ndarray:
-        return np.asarray(Image.open(self.path / fname).convert("RGB"))
-
     def _get_data_by_name(self, fname: str) -> np.ndarray:
-        data = self._load_img(fname)
-
-        return data
+        idx = self.metadata.fname2batchnum[fname]
+        return np.array(self._data[idx])
 
     def _get_data_by_index(self, idx: int) -> np.ndarray:
-        fname = self.metadata.fnames[idx]
-        data = self._load_img(fname)
-
-        return data
+        return np.array(self._data[idx])
 
     def _get_data(self, id: int | str) -> np.ndarray:
         if isinstance(id, str):
@@ -92,13 +90,17 @@ class _Dataset(object):
     def _to(self, device: str) -> None:
         self.device = device
 
-    def _cache(self, quantity:int, device: str) -> None:
-        self._data = np.stack(
-            [self._load_img(fname) for fname in self.metadata.fnames[:quantity]]
-        )
-        if self.for_torch:
-            self._data = Tensor(self._data)        
-            self._to(device)
+    def _cache(self, cache:bool) -> None:
+        if cache:
+            if self.for_torch:
+                self._data = Tensor(self._data)    
+            else:
+                self._data = np.array(self._data)
+        else:
+            if isinstance(self._data, np.ndarray):
+                file = TemporaryFile()
+                self._data = np.memmap(file, dtype=self._data.dtype, mode='w+', shape=self._data.shape)
+
 
     # TODO: Add more assertions in cases
     def _get_condition(self, by: ByOption, value: Any) -> Callable[[str, Dict[str, Dict]], bool]:
@@ -134,14 +136,14 @@ class _Dataset(object):
 
         return condition
 
-    def _subset(self, condition) -> Dict:
+    def _subset(self, condition) -> Metadata:
         fname2info = {}
         for fname, info in self.metadata.fname2info.items():
             if condition(fname=fname, info=info):
                 fname2info[fname] = info
         return self.metadata._new_metadata(fname2info)
 
-    def _subset_complement(self, condition) -> Dict:
+    def _subset_complement(self, condition) -> Metadata:
         fname2info_c = {}
         for fname, info in self.metadata.fname2info.items():
             if not condition(fname=fname, info=info):
@@ -149,7 +151,7 @@ class _Dataset(object):
 
         return self.metadata._new_metadata(fname2info_c)
     
-    def _subset_and_complement(self, condition) -> tuple[Dict, Dict]:
+    def _subset_and_complement(self, condition) -> tuple[Metadata, Metadata]:
         fname2info = {}
         fname2info_c = {}
         for fname, info in self.metadata.fname2info.items():
@@ -159,6 +161,25 @@ class _Dataset(object):
                 fname2info_c[fname] = info
 
         return self.metadata._new_metadata(fname2info), self.metadata._new_metadata(fname2info_c)
+
+    # TODO: Clean this up
+    def _apply(self, action, action_params):
+        if isinstance(self._data, np.ndarray):
+            data = self._data
+        elif isinstance(self._data, np.memmap):
+            data = np.array(self._data)
+
+        if isinstance(action, list):
+            for i in len(action):
+                if i < len(action_params):
+                    params = action_params[i]
+                    data = action[i](data, **params)
+                else:
+                    data = action[i](data)
+        else:
+            data = action(data, **action_params)
+
+        return data
 
 
 class DatasetIterator(Iterator):

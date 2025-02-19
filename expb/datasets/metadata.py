@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
+from typing_extensions import Self
 import json
 
 import matplotlib.pyplot as plt
@@ -43,7 +44,7 @@ class Metadata(object):
 
         return item
 
-    def _new_metadata(self, fname2info: Dict):
+    def _new_metadata(self, fname2info: Dict) -> Any:
         raise NotImplementedError()
 
 
@@ -112,8 +113,8 @@ class SegmMetadata(Metadata):
         adj_label = label * (255 / max_cat_id)
         plt.imshow(adj_label, vmin=0, vmax=255, cmap="viridis")
 
-    def _new_metadata(self, fname2info: Dict):
-        # drop categories no longer present
+    # TODO: drop categories and tags no longer present
+    def _new_metadata(self, fname2info: Dict) -> Any:
 
         return SegmMetadata(
             None,
