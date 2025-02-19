@@ -92,7 +92,7 @@ class _Dataset(object):
     def _to(self, device: str) -> None:
         self.device = device
 
-    def _load(self, quantity:int, device: str) -> None:
+    def _cache(self, quantity:int, device: str) -> None:
         self._data = np.stack(
             [self._load_img(fname) for fname in self.metadata.fnames[:quantity]]
         )
@@ -110,9 +110,9 @@ class _Dataset(object):
                 )
 
                 c_id = self.metadata.categoryname2id[value]
-                def condition(fname, meta_value) -> bool:
+                def condition(fname, info) -> bool:
                     return (
-                        c_id in meta_value["categories"]
+                        c_id in info["categories"]
                     )  # check if the image has a mask (segmentation) with this category.
 
             case By.IMG_SHAPE:
@@ -120,8 +120,8 @@ class _Dataset(object):
                     f"The shape ({value}) must be a tuple."
                 )
 
-                def condition(fname, meta_value) -> bool:
-                    return (meta_value["height"], meta_value["width"]) == value
+                def condition(fname, info) -> bool:
+                    return (info["height"], info["width"]) == value
 
             case By.TAG:
                 assert hasattr(self.metadata, "all_tags"), ("Dataset must use the Tags to subset by TAG.")
@@ -129,34 +129,34 @@ class _Dataset(object):
                     f"The tag ({value}) is not valid. This dataset has tags: {self.metadata.all_tags}"
                 )
 
-                def condition(fname, meta_value) -> bool:
-                    return value in meta_value["tags"]
+                def condition(fname, info) -> bool:
+                    return value in info["tags"]
 
         return condition
 
     def _subset(self, condition) -> Dict:
         fname2info = {}
-        for fname, meta_value in self.metadata.fname2info.items():
-            if condition(fname=fname, meta_value=meta_value):
-                fname2info[fname] = meta_value
+        for fname, info in self.metadata.fname2info.items():
+            if condition(fname=fname, info=info):
+                fname2info[fname] = info
         return self.metadata._new_metadata(fname2info)
 
     def _subset_complement(self, condition) -> Dict:
         fname2info_c = {}
-        for fname, meta_value in self.metadata.fname2info.items():
-            if not condition(fname=fname, meta_value=meta_value):
-                fname2info_c[fname] = meta_value
+        for fname, info in self.metadata.fname2info.items():
+            if not condition(fname=fname, info=info):
+                fname2info_c[fname] = info
 
         return self.metadata._new_metadata(fname2info_c)
     
     def _subset_and_complement(self, condition) -> tuple[Dict, Dict]:
         fname2info = {}
         fname2info_c = {}
-        for fname, meta_value in self.metadata.fname2info.items():
-            if condition(fname, meta_value):
-                fname2info[fname] = meta_value
+        for fname, info in self.metadata.fname2info.items():
+            if condition(fname, info):
+                fname2info[fname] = info
             else:
-                fname2info_c[fname] = meta_value
+                fname2info_c[fname] = info
 
         return self.metadata._new_metadata(fname2info), self.metadata._new_metadata(fname2info_c)
 
