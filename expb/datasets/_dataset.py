@@ -13,6 +13,7 @@ from torch import Tensor
 from expb.datasets.metadata import Metadata
 
 from ._typing import AnyMetadata, MetadataWithLabel
+from ._helpers import _get_idx_splits, _create_new_mmap_from_ndarray
 from .by import By, ByOption
 
 
@@ -97,9 +98,10 @@ class _Dataset(object):
             else:
                 self._data = np.array(self._data)
         else:
-            if isinstance(self._data, np.ndarray):
-                file = TemporaryFile()
-                self._data = np.memmap(file, dtype=self._data.dtype, mode='w+', shape=self._data.shape)
+            if not isinstance(self._data, np.memmap):
+                if isinstance(self._data, Tensor):
+                    self._data = self._data.numpy()
+                self._data = _create_new_mmap_from_ndarray(self._data)
 
 
     # TODO: Add more assertions in cases
@@ -180,6 +182,24 @@ class _Dataset(object):
             data = action(data, **action_params)
 
         return data
+
+        # TODO: move to helpers or builder or _dataset
+    # TODO: clean logic
+    def _new_dataset(
+        self, new_data: np.ndarray | np.memmap | Tensor | None = None, new_metadata:  Metadata | None = None
+    ) -> Self:
+        new_dataset = copy(self)
+        if isinstance(new_data, np.memmap):
+                new_dataset._data = new_data
+        elif isinstance(new_data, np.ndarray):
+                new_dataset._data = _create_new_mmap_from_ndarray(new_data)
+        else:
+            pass
+        if new_metadata:
+            new_dataset.metadata = new_metadata
+
+        return new_dataset
+
 
 
 class DatasetIterator(Iterator):

@@ -101,27 +101,7 @@ class Dataset(_Dataset):
     ) -> Self | Any:
         result = self._apply(action, action_params)
         if return_dataset:
-            return self.new_dataset(new_data=result)
+            return self._new_dataset(new_data=result)
         else:
             return result
 
-    # TODO: move to helpers or builder or _dataset
-    # TODO: clean logic
-    def new_dataset(
-        self, new_data: None | np.ndarray | np.memmap = None, new_metadata: None | Metadata = None
-    ):
-        new_dataset = copy(self)
-        if new_data:
-            if isinstance(new_data, np.ndarray):
-                file = TemporaryFile()
-                fp = np.memmap(file, dtype=new_data.dtype, mode="w+", shape=new_data.shape)
-                fp[:] = new_data[:]
-                fp.flush()
-                self._data = fp
-            elif isinstance(new_data, np.memmap):
-                self._data = new_data
-
-        if new_metadata:
-            new_dataset.metadata = new_metadata
-
-        return new_dataset

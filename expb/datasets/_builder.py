@@ -7,6 +7,7 @@ import numpy as np
 
 from .dataset import Dataset
 from .metadata import SegmMetadata
+from ._helpers import _create_new_mmap_from_ndarray
 from ._utils import _rectify_dir_paths, _load_annotation_data, _get_dataset_split_dirs
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
 
@@ -117,16 +118,13 @@ def _build_metadata__coco_segm(
         all_tags=all_tags,
     )
 
-def _load_imgs_as_mmap(data_path:Path):
+def _load_imgs_as_mmap(data_path:Path) -> np.memmap:
     imgs = []
     for file_path in data_path.iterdir():
         if file_path.suffix in ['.png', '.jpg', '.jpeg']:
             imgs.append(cv2.imread(str(file_path)))
     data = np.stack(imgs)
-    file = TemporaryFile()
-    mm = np.memmap(file, dtype=data.dtype, mode="w+", shape=data.shape)
-    mm[:] = data[:]
-    mm.flush()
+    mm = _create_new_mmap_from_ndarray(data)
     return mm
     
 
