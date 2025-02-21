@@ -166,7 +166,20 @@ class _Dataset(object):
 
         return self.metadata._new_metadata(fname2info), self.metadata._new_metadata(fname2info_c)
 
-    # TODO: Clean this up
+    def _split(
+        self, split_fractions: Sequence[float], shuffle: bool, random_seed: int | None
+    ) -> list:
+        n_data = len(self)
+
+        idx_splits = _get_idx_splits(split_fractions, n_data, shuffle, random_seed)
+        data_splits = [self._data[idx_split] for idx_split in idx_splits]
+        metadata_splits = self.metadata._split_metadata(idx_splits)
+
+        return [
+            self._new_dataset(new_data=data_split, new_metadata=metadata_split)
+            for data_split, metadata_split in zip(data_splits, metadata_splits)
+        ]
+
     def _apply(self, action, action_params):
         if isinstance(self._data, np.ndarray):
             data = self._data

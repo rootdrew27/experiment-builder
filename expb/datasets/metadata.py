@@ -47,6 +47,12 @@ class Metadata(object):
     def _new_metadata(self, fname2info: Dict) -> Metadata:
         raise NotImplementedError()
 
+    def _split_metadata(self, idx_splits: list[NDArray]) -> list[Metadata]:
+        return [
+            self._new_metadata({self.fnames[idx]: self.infos[idx] for idx in idx_split})
+            for idx_split in idx_splits
+        ]
+
 
 class SegmMetadata(Metadata):
     """An object to store and manage the metadata of a dataset. This class defines a categoryname2id dictionary which simultaneously maps each category name to an integer and encodes the class heirarchy (i.e. a category with a larger category number with take precedence in the case of overlapping segmentations). The SegmMetadata.fname2info dict has the following format:
