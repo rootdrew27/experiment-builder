@@ -1,23 +1,19 @@
-import unittest
-from unittest import TestCase
-import shutil
 import io
+import shutil
+import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Dict
+from unittest import TestCase
 
-import torch
-from torch import Tensor
 import numpy as np
 from numpy.testing import assert_array_equal
+from torch import Tensor
 
-from expb import build_dataset
-from expb import VALID_FORMATS
-from expb import extract_zip_dataset
-from expb import LabelingPlatform
+from expb import VALID_FORMATS, LabelingPlatform, build_dataset, extract_zip_dataset
+from expb.datasets.by import By
 from expb.datasets.dataset import Dataset
 from expb.datasets.metadata import SegmMetadata
-from expb.datasets.by import By
 
 test_zip_path = r".\tests\data\FOD Objects.v5i.coco-segmentation.zip"
 
@@ -79,8 +75,12 @@ class TestDatasetWithSegmMetadata(TestCase):
         self.test_task = TestDatasetWithSegmMetadata.test_task
 
     def test_build_dataset_coco_no_splits(self) -> None:
-
-        ds: Dataset = build_dataset(data_dir=self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
+        ds: Dataset = build_dataset(
+            data_dir=self.test_data_dir,
+            format=self.test_format,
+            task=self.test_task,
+            is_split=False,
+        )
 
         self.assertIsInstance(ds, Dataset)
         self.assertIsInstance(ds._data, np.memmap)
@@ -106,19 +106,38 @@ class TestDatasetWithSegmMetadata(TestCase):
             AssertionError,
             msg="The parameter is_split was set to True but only 0 splits were identified.",
         ):
-            build_dataset(data_dir=self.test_data_dir, format=self.test_format, task=self.test_task, is_split=True)
+            build_dataset(
+                data_dir=self.test_data_dir,
+                format=self.test_format,
+                task=self.test_task,
+                is_split=True,
+            )
 
         with self.assertRaises(AssertionError):
             build_dataset(data_dir=self.test_data_dir, format=self.test_format, task="bbox")
 
-    def test_dataset_iteration(self):
+    def test_memmapping(self):
+        ds: Dataset = build_dataset(
+            self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False
+        )
 
-        ds: Dataset = build_dataset(data_dir=self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
+        with self.assertRaises(Exception):  # the _data attribute is read only
+            ds._data[0] = 10
+
+    def test_dataset_iteration(self):
+        ds: Dataset = build_dataset(
+            data_dir=self.test_data_dir,
+            format=self.test_format,
+            task=self.test_task,
+            is_split=False,
+        )
 
         for i, datum in enumerate(ds):
             self.assertEqual(len(datum), 3)
             data, fname, info = datum
-            self.assertIsInstance(data, np.ndarray)
+            self.assertIsInstance(
+                data, np.ndarray
+            )  # Data accessed through iteration and indexing is converted to np.ndarray
             self.assertIsInstance(fname, str)
             self.assertIsInstance(info, Dict)
 
@@ -133,8 +152,12 @@ class TestDatasetWithSegmMetadata(TestCase):
             self.assertIs(fname, fname2)
 
     def test_torch_support(self):
-
-        ds: Dataset = build_dataset(data_dir=self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
+        ds: Dataset = build_dataset(
+            data_dir=self.test_data_dir,
+            format=self.test_format,
+            task=self.test_task,
+            is_split=False,
+        )
 
         ds.torch()
         self.assertTrue(ds.for_torch)
@@ -146,11 +169,15 @@ class TestDatasetWithSegmMetadata(TestCase):
         # TODO: Test with Dataloader
 
     def test_setting_cls_hieracrchy(self):
-
-        ds: Dataset = build_dataset(data_dir=self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
+        ds: Dataset = build_dataset(
+            data_dir=self.test_data_dir,
+            format=self.test_format,
+            task=self.test_task,
+            is_split=False,
+        )
         self.assertEqual(len(ds.metadata.categoryname2id), 3)
         # define category hierarchy
-        cat_hierarchy = {"misc": 1, "FO": 2} # background class will be automatically set to 0
+        cat_hierarchy = {"misc": 1, "FO": 2}  # background class will be automatically set to 0
         ds.metadata.set_category_hierarchy(hierarchy=cat_hierarchy)
         self.assertEqual(len(ds.metadata.categoryname2id), 3)
         label_1 = ds.get_label(1)
@@ -161,30 +188,83 @@ class TestDatasetWithSegmMetadata(TestCase):
         self.assertIn(2, label_3)
 
     def test_subset(self):
-
-        ds: Dataset = build_dataset(data_dir=self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
+        ds: Dataset = build_dataset(
+            data_dir=self.test_data_dir,
+            format=self.test_format,
+            task=self.test_task,
+            is_split=False,
+        )
 
         has_misc = ds.subset(by=By.CATEGORY, value="misc")
-        self.assertIn("Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg", has_misc.metadata.fnames)
-        self.assertIn("BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg", has_misc.metadata.fnames)
+        self.assertIn(
+            "Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg",
+            has_misc.metadata.fnames,
+        )
+        self.assertIn(
+            "BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg",
+            has_misc.metadata.fnames,
+        )
         self.assertEqual(len(has_misc), 2)
 
         no_misc = ds.subset(by=By.CATEGORY, value="misc", complement=True)
-        self.assertNotIn("Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg", no_misc.metadata.fnames)
-        self.assertNotIn("BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg", no_misc.metadata.fnames)
+        self.assertNotIn(
+            "Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg",
+            no_misc.metadata.fnames,
+        )
+        self.assertNotIn(
+            "BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg",
+            no_misc.metadata.fnames,
+        )
         self.assertEqual(len(no_misc), 6)
 
         has_misc, no_misc = ds.subset(by=By.CATEGORY, value="misc", return_both=True)
-        self.assertIn("Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg", has_misc.metadata.fnames)
-        self.assertIn("BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg", has_misc.metadata.fnames)
+        self.assertIn(
+            "Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg",
+            has_misc.metadata.fnames,
+        )
+        self.assertIn(
+            "BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg",
+            has_misc.metadata.fnames,
+        )
         self.assertEqual(len(has_misc), 2)
-        self.assertNotIn("Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg", no_misc.metadata.fnames)
-        self.assertNotIn("BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg", no_misc.metadata.fnames)
+        self.assertNotIn(
+            "Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg",
+            no_misc.metadata.fnames,
+        )
+        self.assertNotIn(
+            "BoltWasher3_frame_000055_png.rf.aae08f33784ac37fdfb69b7c23d34258.jpg",
+            no_misc.metadata.fnames,
+        )
         self.assertEqual(len(no_misc), 6)
 
         exlcudes_ignore = ds.subset(by=By.TAG, value="ignore", complement=True)
         self.assertEqual(len(exlcudes_ignore), 7)
-        self.assertNotIn("ClampPart1a_frame_000032_png.rf.40aed52812528fa29028b95931043e8b.jpg", exlcudes_ignore.metadata.fnames)
+        self.assertNotIn(
+            "ClampPart1a_frame_000032_png.rf.40aed52812528fa29028b95931043e8b.jpg",
+            exlcudes_ignore.metadata.fnames,
+        )
+
+    def test_split(self):
+        ds: Dataset = build_dataset(
+            data_dir=self.test_data_dir,
+            format=self.test_format,
+            task=self.test_task,
+            is_split=False,
+        )
+        train_ds, test_ds = ds.split(split_fracs=[0.8, 0.2], shuffle=False)
+        self.assertEqual(len(train_ds), 7)
+        self.assertEqual(len(test_ds), 1)
+        self.assertIn(
+            "Cutter3_frame_000088_png.rf.cbbb3bc149fbf20e2476aca1c3e7656a.jpg",
+            test_ds.metadata.fnames,
+        )
+
+        train_ds, test_ds = ds.split(split_fracs=[0.5, 0.5], shuffle=False, random_seed=0)
+        self.assertEqual(len(train_ds), len(test_ds))
+
+        with self.assertRaises(AssertionError):
+            _, _ = ds.split(split_fracs=[0.8, 0.15], shuffle=False)
+
 
 if __name__ == "__main__":
     unittest.main()
