@@ -44,7 +44,7 @@ class Metadata(object):
 
         return item
 
-    def _new_metadata(self, fname2info: Dict) -> Any:
+    def _new_metadata(self, fname2info: Dict) -> Metadata:
         raise NotImplementedError()
 
 
@@ -118,7 +118,7 @@ class SegmMetadata(Metadata):
         plt.imshow(adj_label, vmin=0, vmax=255, cmap="viridis")
 
     # TODO: drop categories and tags no longer present
-    def _new_metadata(self, fname2info: Dict) -> Any:
+    def _new_metadata(self, fname2info: Dict) -> Metadata:
         return SegmMetadata(
             None,
             fname2info=fname2info,
