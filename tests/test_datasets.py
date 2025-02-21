@@ -124,6 +124,21 @@ class TestDatasetWithSegmMetadata(TestCase):
         with self.assertRaises(Exception):  # the _data attribute is read only
             ds._data[0] = 10
 
+    def test_caching(self):
+        ds:Dataset = build_dataset(self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
+
+        self.assertIsInstance(ds._data, np.memmap)
+
+        ds.cache()
+
+        self.assertNotIsInstance(ds._data, np.memmap)
+        self.assertIsInstance(ds._data, np.ndarray)
+
+        ds.cache(False)
+
+        self.assertIsInstance(ds._data, np.memmap)
+
+
     def test_dataset_iteration(self):
         ds: Dataset = build_dataset(
             data_dir=self.test_data_dir,

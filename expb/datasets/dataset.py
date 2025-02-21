@@ -26,7 +26,7 @@ class Dataset(_Dataset):
     ) -> None:
         super().__init__(data, path, metadata, for_torch, transform, target_transform, name)
 
-    def cache(self, cache: bool) -> None:
+    def cache(self, cache: bool=True) -> None:
         self._cache(cache)
 
     def to(self, device: str) -> None:
