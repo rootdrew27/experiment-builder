@@ -122,7 +122,7 @@ def _load_imgs_as_mmap(data_path: Path) -> np.memmap:
     imgs = []
     for file_path in data_path.iterdir():
         if file_path.suffix in [".png", ".jpg", ".jpeg"]:
-            imgs.append(cv2.imread(str(file_path)))
+            imgs.append(cv2.imread(str(file_path), cv2.IMREAD_COLOR_RGB))
     data = np.stack(imgs)
     mm = _create_new_mmap_from_ndarray(data)
     return mm
