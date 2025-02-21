@@ -1,15 +1,14 @@
 from pathlib import Path
-from typing import Dict, Callable
-from tempfile import TemporaryFile
+from typing import Callable, Dict
 
 import cv2
 import numpy as np
 
-from .dataset import Dataset
-from .metadata import SegmMetadata
 from ._helpers import _create_new_mmap_from_ndarray
-from ._utils import _rectify_dir_paths, _load_annotation_data, _get_dataset_split_dirs
+from ._utils import _get_dataset_split_dirs, _load_annotation_data, _rectify_dir_paths
+from .dataset import Dataset
 from .labeling_platform import LabelingPlatform, LabelingPlatformOption
+from .metadata import SegmMetadata
 
 VALID_FORMATS = [
     "coco",
@@ -35,7 +34,7 @@ def _build_categoryname2id_coco__roboflow(annot_categories: list[dict]) -> tuple
         )
 
         assert name != "background", (
-            "A background category is assigned automatically, please remove or change the name of the background category in your dataset." # TODO: implement annotation utilies to handle changing class names
+            "A background category is assigned automatically, please remove or change the name of the background category in your dataset."  # TODO: implement annotation utilies to handle changing class names
         )
         # If the category does NOT have a super category, then it IS a super category.
         if super_category == "none":
@@ -118,15 +117,16 @@ def _build_metadata__coco_segm(
         all_tags=all_tags,
     )
 
-def _load_imgs_as_mmap(data_path:Path) -> np.memmap:
+
+def _load_imgs_as_mmap(data_path: Path) -> np.memmap:
     imgs = []
     for file_path in data_path.iterdir():
-        if file_path.suffix in ['.png', '.jpg', '.jpeg']:
+        if file_path.suffix in [".png", ".jpg", ".jpeg"]:
             imgs.append(cv2.imread(str(file_path)))
     data = np.stack(imgs)
     mm = _create_new_mmap_from_ndarray(data)
     return mm
-    
+
 
 def _builder__coco_segm(
     data_path: Path,

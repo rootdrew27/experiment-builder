@@ -1,16 +1,15 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Callable, Dict, Sequence
-from typing_extensions import Self
-from copy import copy
-from tempfile import TemporaryFile
 
 import numpy as np
+from numpy.typing import NDArray
 from torch import Tensor
+from typing_extensions import Self
 
-from expb.datasets.metadata import Metadata
-
-from ._typing import MetadataWithLabel, AnyMetadata
 from ._dataset import _Dataset
+from ._typing import AnyMetadata, MetadataWithLabel
 from .by import ByOption
 
 
@@ -34,15 +33,15 @@ class Dataset(_Dataset):
         assert device in ["cpu", "cuda"], "Device must be one of ['cpu', 'cuda']"
         self._to(device)
 
-    # TODO: Make this pretty
+    # TODO: Make the output pretty
     def display_metadata(self) -> None:
         print(self.metadata)
 
-    def get_label(self, id: int | str):
+    def get_label(self, id: int | str) -> NDArray:
         assert isinstance(self.metadata, MetadataWithLabel)
         return self.metadata._get_label(id)
 
-    def display_label(self, id: int | str):
+    def display_label(self, id: int | str) -> None:
         assert isinstance(self.metadata, MetadataWithLabel)
         self.metadata._display_label(id)
 
@@ -59,8 +58,8 @@ class Dataset(_Dataset):
         value: Any,
         complement: bool = False,
         return_both: bool = False,
-        **kwargs,
-    ) -> Self | tuple[Self, Self]:
+        **kwargs: Any,
+    ) -> _Dataset | tuple[_Dataset, _Dataset]:
         """Create a subset of the dataset. Optionally return the complement, or return both sets.
 
         Args:
@@ -81,27 +80,33 @@ class Dataset(_Dataset):
         if return_both:
             subset, subset_c = self._subset_and_complement(condition)
             if complement:
-                return self.new_dataset(new_metadata=subset_c)
+                return self._new_dataset(new_metadata=subset_c)
             else:
-                return self.new_dataset(new_metadata=subset), self.new_dataset(
+                return self._new_dataset(new_metadata=subset), self._new_dataset(
                     new_metadata=subset_c
                 )
         elif complement:
             subset_c = self._subset_complement(condition)
-            return self.new_dataset(new_metadata=subset_c)
+            return self._new_dataset(new_metadata=subset_c)
         else:
             subset = self._subset(condition)
-            return self.new_dataset(new_metadata=subset)
+            return self._new_dataset(new_metadata=subset)
+
+    def split(
+        self, split_fracs: Sequence[float], shuffle: bool, random_seed: int | None = None
+    ) -> list[Dataset]:
+        assert sum(split_fracs) == 1, "The split fractions must sum to 1."
+
+        return self._split(split_fracs, shuffle, random_seed)
 
     def apply(
         self,
         action: Callable | list[Callable],
         action_params: Dict[str, Any] | list[Dict[str, Any]],
         return_dataset: bool,
-    ) -> Self | Any:
+    ) -> Dataset | Any:
         result = self._apply(action, action_params)
         if return_dataset:
             return self._new_dataset(new_data=result)
         else:
             return result
-

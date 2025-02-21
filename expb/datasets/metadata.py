@@ -1,12 +1,12 @@
-from pathlib import Path
-from typing import Any, Dict
-from typing_extensions import Self
+from __future__ import annotations
 import json
+from pathlib import Path
+from typing import Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 from PIL import Image, ImageDraw
-
 
 class Metadata(object):
     def __init__(self, path: Path | None, fname2info: Dict[str, Dict]):
@@ -65,7 +65,11 @@ class SegmMetadata(Metadata):
     """
 
     def __init__(
-        self, path: Path | None, fname2info: dict, categoryname2id: Dict[str, int], all_tags: list[str]
+        self,
+        path: Path | None,
+        fname2info: dict,
+        categoryname2id: Dict[str, int],
+        all_tags: list[str],
     ):
         super().__init__(path, fname2info)
         self.task = "segm"
@@ -115,13 +119,9 @@ class SegmMetadata(Metadata):
 
     # TODO: drop categories and tags no longer present
     def _new_metadata(self, fname2info: Dict) -> Any:
-
         return SegmMetadata(
             None,
             fname2info=fname2info,
             categoryname2id=self.categoryname2id,
             all_tags=self.all_tags,
         )
-
-
-# plt_cfg = {"vmin": 0, "vmax": 255, "cmap": "viridis"}

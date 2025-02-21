@@ -3,6 +3,7 @@ import json
 from typing import Any
 import zipfile
 
+
 def _rectify_paths(*args: Path | str) -> tuple[Path, ...]:
     output = []
     for arg in args:
@@ -37,6 +38,7 @@ def _load_annotation_data(path_to_data: Path | str) -> Any:
     with open(path_to_data, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data
+
 
 def _extract_zip(src_path: Path | str, dest_path: Path) -> None:
     zf = zipfile.ZipFile(src_path)
