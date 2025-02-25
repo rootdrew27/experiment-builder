@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 git_notes.txt
 Notes/
+scripts/
 
 notebooks/data/
 
