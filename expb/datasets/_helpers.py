@@ -3,7 +3,7 @@ from tempfile import TemporaryFile
 
 import numpy as np
 from numpy.typing import NDArray
-import cupy as cp
+import cupy as cp # type : ignore
 
 
 def _get_idx_splits(
@@ -29,7 +29,9 @@ def _create_new_mmap_from_ndarray(arr: NDArray | cp.ndarray) -> np.memmap:
     )
     file = TemporaryFile()
     mm = np.memmap(file, dtype=arr.dtype, mode="w+", shape=arr.shape)
-    mm[:] = arr[:] if isinstance(arr, np.ndarray) else arr[:].get() # gets arr from cupy if not an ndarray
+    mm[:] = (
+        arr[:] if isinstance(arr, np.ndarray) else arr[:].get()
+    )  # gets arr from cupy if not an ndarray
     mm.flush()
     mm.setflags(write=False)
     return mm

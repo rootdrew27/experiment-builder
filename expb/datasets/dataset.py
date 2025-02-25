@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Callable, Dict, Sequence
+from typing_extensions import Self
 
 import numpy as np
 from numpy.typing import NDArray
 from torch import Tensor
-from typing_extensions import Self
 
 from ._dataset import _Dataset
 from ._typing import AnyMetadata, MetadataWithLabel
@@ -26,7 +26,7 @@ class Dataset(_Dataset):
     ) -> None:
         super().__init__(data, path, metadata, for_torch, transform, target_transform, name)
 
-    def cache(self, cache: bool=True) -> None:
+    def cache(self, cache: bool = True) -> None:
         self._cache(cache)
 
     def to(self, device: str) -> None:

@@ -4,13 +4,15 @@ from copy import copy
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, Sequence
 
+# from memory_profiler import profile # type : ignore
 import numpy as np
+from numpy.typing import NDArray
+import cupy as cp  # type: ignore
 import torch
 from torch import Tensor
 from typing_extensions import Self
 
-from expb.datasets.metadata import Metadata
-
+from .metadata import Metadata
 from ._helpers import _create_new_mmap_from_ndarray, _get_idx_splits
 from ._typing import AnyMetadata, MetadataWithLabel
 from .by import By, ByOption
@@ -156,7 +158,7 @@ class _Dataset(object):
 
         return self.metadata._new_metadata(fname2info_c)
 
-    def _subset_and_complement(self, condition) -> tuple[Metadata, Metadata]:
+    def _subset_and_complement(self, condition: Callable) -> tuple[Metadata, Metadata]:
         fname2info = {}
         fname2info_c = {}
         for fname, info in self.metadata.fname2info.items():
@@ -214,7 +216,7 @@ class _Dataset(object):
         new_dataset = copy(self)
         if isinstance(new_data, np.memmap):
             new_dataset._data = new_data
-        elif isinstance(new_data, np.ndarray):
+        elif isinstance(new_data, (np.ndarray | cp.ndarray)):
             new_dataset._data = _create_new_mmap_from_ndarray(new_data)
         else:
             pass

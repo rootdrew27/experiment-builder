@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 from PIL import Image, ImageDraw
 
+
 class Metadata(object):
     def __init__(self, path: Path | None, fname2info: Dict[str, Dict]):
         self.path = path
