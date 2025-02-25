@@ -30,6 +30,7 @@ class _Dataset(object):
         self._data: np.ndarray | np.memmap | Tensor = data
         self.path = path
         self.metadata = metadata
+        self._action_queue: list[tuple[Callable, tuple, Dict[str, Any]]] = []
         self.name = name
         self.device = "cpu"  # or 'cuda'
         self.for_torch = for_torch
@@ -180,25 +181,29 @@ class _Dataset(object):
             for data_split, metadata_split in zip(data_splits, metadata_splits)
         ]
 
-    def _apply(self, action, action_params):
-        if isinstance(self._data, np.ndarray):
-            data = self._data
-        elif isinstance(self._data, np.memmap):
-            data = np.array(self._data)
+    def _apply(self, action: tuple[Callable, tuple, Dict[str, Any]]) -> None:
+        self._action_queue.append(action)
 
-        if isinstance(action, list):
-            for i in len(action):
-                if i < len(action_params):
-                    params = action_params[i]
-                    data = action[i](data, **params)
-                else:
-                    data = action[i](data)
+    # TODO: optimize
+    def _execute(self, return_dataset: bool) -> _Dataset | NDArray:
+        data = np.array(self._data)
+        if self.device == "cuda":
+            data = cp.asarray(data)
+        while len(self._action_queue) > 0:
+            func, params, kw_params = self._action_queue.pop(0)
+            data = func(data, *params, **kw_params)
+
+        if self.device == "cuda":
+            p_mempool = cp.get_default_pinned_memory_pool()
+            mempool = cp.get_default_memory_pool()
+            p_mempool.free_all_blocks()
+            mempool.free_all_blocks()
+
+        # check if the last action returns a dataset
+        if return_dataset:
+            return self._new_dataset(data)
         else:
-            data = action(data, **action_params)
-
-        return data
-
-        # TODO: move to helpers or builder or _dataset
+            return data
 
     # TODO: clean logic
     def _new_dataset(

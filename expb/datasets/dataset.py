@@ -99,14 +99,12 @@ class Dataset(_Dataset):
 
         return self._split(split_fracs, shuffle, random_seed)
 
-    def apply(
-        self,
-        action: Callable | list[Callable],
-        action_params: Dict[str, Any] | list[Dict[str, Any]],
-        return_dataset: bool,
-    ) -> Dataset | Any:
-        result = self._apply(action, action_params)
-        if return_dataset:
-            return self._new_dataset(new_data=result)
-        else:
-            return result
+    def apply(self, func: Callable, params: tuple = (), kw_params: Dict[str, Any] = {}) -> Self:
+        self._apply((func, params, kw_params))
+        return self
+
+    def execute(self, return_dataset: bool) -> _Dataset | NDArray:
+        assert len(self._action_queue) > 0, (
+            "You must queue up actions with .apply() before calling execute."
+        )
+        return self._execute(return_dataset)
