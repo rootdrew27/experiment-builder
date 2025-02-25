@@ -100,6 +100,8 @@ class Dataset(_Dataset):
         return self._split(split_fracs, shuffle, random_seed)
 
     def apply(self, func: Callable, params: tuple = (), kw_params: Dict[str, Any] = {}) -> Self:
+        assert isinstance(params, tuple)
+        assert isinstance(kw_params, dict)
         self._apply((func, params, kw_params))
         return self
 

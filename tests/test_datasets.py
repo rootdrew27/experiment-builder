@@ -7,6 +7,7 @@ from typing import Dict
 from unittest import TestCase
 
 import numpy as np
+import cupy as cp  # type: ignore
 from numpy.testing import assert_array_equal
 from torch import Tensor
 
@@ -73,26 +74,25 @@ class TestDatasetWithSegmMetadata(TestCase):
         self.test_data_dir = TestDatasetWithSegmMetadata.test_data_dir
         self.test_format = TestDatasetWithSegmMetadata.test_format
         self.test_task = TestDatasetWithSegmMetadata.test_task
-
-    def test_build_dataset_coco_no_splits(self) -> None:
-        ds: Dataset = build_dataset(
+        self.ds: Dataset = build_dataset(
             data_dir=self.test_data_dir,
             format=self.test_format,
             task=self.test_task,
             is_split=False,
         )
 
-        self.assertIsInstance(ds, Dataset)
-        self.assertIsInstance(ds._data, np.memmap)
-        self.assertEqual(ds.name, Path(self.test_data_dir).stem)
-        self.assertEqual(ds.path, Path(self.test_data_dir))
-        self.assertEqual(len(ds), 8)
-        self.assertIsInstance(ds.metadata, SegmMetadata)
+    def test_build_dataset_coco_no_splits(self) -> None:
+        self.assertIsInstance(self.ds, Dataset)
+        self.assertIsInstance(self.ds._data, np.memmap)
+        self.assertEqual(self.ds.name, Path(self.test_data_dir).stem)
+        self.assertEqual(self.ds.path, Path(self.test_data_dir))
+        self.assertEqual(len(self.ds), 8)
+        self.assertIsInstance(self.ds.metadata, SegmMetadata)
         self.assertEqual(
-            len(ds.metadata.categoryname2id), 3
+            len(self.ds.metadata.categoryname2id), 3
         )  # check the number of categories. Super categories are ignored, but a background class is added.
-        self.assertEqual(ds.metadata.path, Path(self.test_data_dir) / "_annotations.coco.json")
-        self.assertEqual(len(ds.metadata.all_tags), 1)
+        self.assertEqual(self.ds.metadata.path, Path(self.test_data_dir) / "_annotations.coco.json")
+        self.assertEqual(len(self.ds.metadata.all_tags), 1)
 
         # TODO: Check metadata info on each image (tags, categories, segmentations). Perhaps use a config file to load the expected values in.
 
@@ -117,37 +117,23 @@ class TestDatasetWithSegmMetadata(TestCase):
             build_dataset(data_dir=self.test_data_dir, format=self.test_format, task="bbox")
 
     def test_memmapping(self):
-        ds: Dataset = build_dataset(
-            self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False
-        )
-
         with self.assertRaises(Exception):  # the _data attribute is read only
-            ds._data[0] = 10
+            self.ds._data[0] = 10
 
     def test_caching(self):
-        ds:Dataset = build_dataset(self.test_data_dir, format=self.test_format, task=self.test_task, is_split=False)
+        self.assertIsInstance(self.ds._data, np.memmap)
 
-        self.assertIsInstance(ds._data, np.memmap)
+        self.ds.cache()
 
-        ds.cache()
+        self.assertNotIsInstance(self.ds._data, np.memmap)
+        self.assertIsInstance(self.ds._data, np.ndarray)
 
-        self.assertNotIsInstance(ds._data, np.memmap)
-        self.assertIsInstance(ds._data, np.ndarray)
+        self.ds.cache(False)
 
-        ds.cache(False)
-
-        self.assertIsInstance(ds._data, np.memmap)
-
+        self.assertIsInstance(self.ds._data, np.memmap)
 
     def test_dataset_iteration(self):
-        ds: Dataset = build_dataset(
-            data_dir=self.test_data_dir,
-            format=self.test_format,
-            task=self.test_task,
-            is_split=False,
-        )
-
-        for i, datum in enumerate(ds):
+        for i, datum in enumerate(self.ds):
             self.assertEqual(len(datum), 3)
             data, fname, info = datum
             self.assertIsInstance(
@@ -156,61 +142,41 @@ class TestDatasetWithSegmMetadata(TestCase):
             self.assertIsInstance(fname, str)
             self.assertIsInstance(info, Dict)
 
-            data1, fname1, info1 = ds[fname]
+            data1, fname1, info1 = self.ds[fname]
             assert_array_equal(data, data1)
             self.assertIs(info, info1)
             self.assertIs(fname, fname1)
 
-            data2, fname2, info2 = ds[i]
+            data2, fname2, info2 = self.ds[i]
             assert_array_equal(data, data2)
             self.assertIs(info, info2)
             self.assertIs(fname, fname2)
 
     def test_torch_support(self):
-        ds: Dataset = build_dataset(
-            data_dir=self.test_data_dir,
-            format=self.test_format,
-            task=self.test_task,
-            is_split=False,
-        )
+        self.ds.torch()
+        self.assertTrue(self.ds.for_torch)
 
-        ds.torch()
-        self.assertTrue(ds.for_torch)
-
-        data, label = ds[0]
+        data, label = self.ds[0]
         self.assertIsInstance(data, Tensor)
         self.assertIsInstance(label, np.ndarray)
 
         # TODO: Test with Dataloader
 
     def test_setting_cls_hieracrchy(self):
-        ds: Dataset = build_dataset(
-            data_dir=self.test_data_dir,
-            format=self.test_format,
-            task=self.test_task,
-            is_split=False,
-        )
-        self.assertEqual(len(ds.metadata.categoryname2id), 3)
+        self.assertEqual(len(self.ds.metadata.categoryname2id), 3)
         # define category hierarchy
         cat_hierarchy = {"misc": 1, "FO": 2}  # background class will be automatically set to 0
-        ds.metadata.set_category_hierarchy(hierarchy=cat_hierarchy)
-        self.assertEqual(len(ds.metadata.categoryname2id), 3)
-        label_1 = ds.get_label(1)
+        self.ds.metadata.set_category_hierarchy(hierarchy=cat_hierarchy)
+        self.assertEqual(len(self.ds.metadata.categoryname2id), 3)
+        label_1 = self.ds.get_label(1)
         self.assertIn(0, label_1)
         self.assertIn(2, label_1)
-        label_3 = ds.get_label(3)
+        label_3 = self.ds.get_label(3)
         self.assertIn(1, label_3)
         self.assertIn(2, label_3)
 
     def test_subset(self):
-        ds: Dataset = build_dataset(
-            data_dir=self.test_data_dir,
-            format=self.test_format,
-            task=self.test_task,
-            is_split=False,
-        )
-
-        has_misc = ds.subset(by=By.CATEGORY, value="misc")
+        has_misc = self.ds.subset(by=By.CATEGORY, value="misc")
         self.assertIn(
             "Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg",
             has_misc.metadata.fnames,
@@ -221,7 +187,7 @@ class TestDatasetWithSegmMetadata(TestCase):
         )
         self.assertEqual(len(has_misc), 2)
 
-        no_misc = ds.subset(by=By.CATEGORY, value="misc", complement=True)
+        no_misc = self.ds.subset(by=By.CATEGORY, value="misc", complement=True)
         self.assertNotIn(
             "Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg",
             no_misc.metadata.fnames,
@@ -232,7 +198,7 @@ class TestDatasetWithSegmMetadata(TestCase):
         )
         self.assertEqual(len(no_misc), 6)
 
-        has_misc, no_misc = ds.subset(by=By.CATEGORY, value="misc", return_both=True)
+        has_misc, no_misc = self.ds.subset(by=By.CATEGORY, value="misc", return_both=True)
         self.assertIn(
             "Bolt1a_frame_000086_png.rf.6fa64bafe1c80a9c973c27ae4cb1d8bb.jpg",
             has_misc.metadata.fnames,
@@ -252,7 +218,7 @@ class TestDatasetWithSegmMetadata(TestCase):
         )
         self.assertEqual(len(no_misc), 6)
 
-        exlcudes_ignore = ds.subset(by=By.TAG, value="ignore", complement=True)
+        exlcudes_ignore = self.ds.subset(by=By.TAG, value="ignore", complement=True)
         self.assertEqual(len(exlcudes_ignore), 7)
         self.assertNotIn(
             "ClampPart1a_frame_000032_png.rf.40aed52812528fa29028b95931043e8b.jpg",
@@ -260,13 +226,7 @@ class TestDatasetWithSegmMetadata(TestCase):
         )
 
     def test_split(self):
-        ds: Dataset = build_dataset(
-            data_dir=self.test_data_dir,
-            format=self.test_format,
-            task=self.test_task,
-            is_split=False,
-        )
-        train_ds, test_ds = ds.split(split_fracs=[0.8, 0.2], shuffle=False)
+        train_ds, test_ds = self.ds.split(split_fracs=[0.8, 0.2], shuffle=False)
         self.assertEqual(len(train_ds), 7)
         self.assertEqual(len(test_ds), 1)
         self.assertIn(
@@ -274,11 +234,59 @@ class TestDatasetWithSegmMetadata(TestCase):
             test_ds.metadata.fnames,
         )
 
-        train_ds, test_ds = ds.split(split_fracs=[0.5, 0.5], shuffle=False, random_seed=0)
+        train_ds, test_ds = self.ds.split(split_fracs=[0.5, 0.5], shuffle=False, random_seed=0)
         self.assertEqual(len(train_ds), len(test_ds))
 
         with self.assertRaises(AssertionError):
-            _, _ = ds.split(split_fracs=[0.8, 0.15], shuffle=False)
+            _, _ = self.ds.split(split_fracs=[0.8, 0.15], shuffle=False)
+
+    def test_actions(self):
+
+        def rgb2gray(data, weights):
+            xp = cp.get_array_module(data)
+            if xp is cp:
+                weights = cp.asarray(weights)
+            return xp.dot(data, weights)
+
+        # create parameters for each method of passing parameters
+        kw_params = {"weights": [0.2125, 0.7154, 0.0721]}
+        params = ([0.2125, 0.7154, 0.0721],)
+
+        # test rgb2gray action
+        self.ds.apply(rgb2gray, kw_params=kw_params)
+        # verify that the action has NOT occurred yet
+        self.assertTupleEqual(
+            self.ds._get_data(0).shape, (400, 400, 3)
+        )
+        ds_gray = self.ds.execute(return_dataset=True)
+        # verify that the action has occurred
+        self.assertIsInstance(ds_gray, Dataset)
+        self.assertTupleEqual(
+            ds_gray._get_data(0).shape, (400, 400)
+        )
+        # verify that the action did not affect the original dataset
+        self.assertTupleEqual(
+            self.ds._get_data(0).shape, (400, 400, 3)
+        )
+        # check to see if action_queue is empty after execute call
+        with self.assertRaises(AssertionError):
+            self.ds.execute(return_dataset=True)
+
+        # test on gpu
+        self.ds.to("cuda")
+        ds_gray2 = self.ds.apply(rgb2gray, params=params).execute(True)
+        # verify that the action has occurred
+        self.assertTupleEqual(
+            ds_gray2._get_data(0).shape, (400, 400)
+        )
+        # verify that new dataset is on CPU
+        self.assertEqual(ds_gray2._data.device, "cpu") 
+        self.ds.to("cpu")
+
+        # test returning data (rather than dataset)
+        data = self.ds.apply(rgb2gray, params=params).execute(return_dataset=False)
+        self.assertIsInstance(data, np.ndarray)
+        self.assertTupleEqual(data[0].shape, (400, 400))  # verify action occurred
 
 
 if __name__ == "__main__":
