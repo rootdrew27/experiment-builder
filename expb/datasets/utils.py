@@ -49,7 +49,7 @@ def extract_zip_dataset(
 def download_dataset(
     url: str,
     dest_path: Path,
-    zip: bool,
+    is_zip: bool,
     overwrite: bool = False,
     labeling_platform: LabelingPlatformOption = LabelingPlatform.ROBOFLOW,
 ) -> None:
@@ -66,7 +66,7 @@ def download_dataset(
 
         dest_path.mkdir(parents=True)
 
-        if zip:
+        if is_zip:
             _extract_zip(filepath, dest_path)
 
         if labeling_platform == LabelingPlatform.ROBOFLOW and (dest_path / "train").exists():

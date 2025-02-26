@@ -29,9 +29,11 @@ class Dataset(_Dataset):
     def cache(self, cache: bool = True) -> None:
         self._cache(cache)
 
-    def to(self, device: str) -> None:
+    def to(self, device: str) -> Self:
         assert device in ["cpu", "cuda"], "Device must be one of ['cpu', 'cuda']"
         self._to(device)
+        return self
+        
 
     # TODO: Make the output pretty
     def display_metadata(self) -> None:
