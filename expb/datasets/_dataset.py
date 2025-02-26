@@ -188,24 +188,30 @@ class _Dataset(object):
 
     # TODO: optimize
     def _execute(self, return_dataset: bool) -> _Dataset | NDArray:
-        data = np.array(self._data)
-        if self.device == "cuda":
-            data = cp.asarray(data)
-        while len(self._action_queue) > 0:
-            func, params, kw_params = self._action_queue.pop(0)
-            data = func(data, *params, **kw_params)
+        try:
+            data = np.array(self._data)
+            if self.device == "cuda":
+                data = cp.asarray(data)
+            while len(self._action_queue) > 0:
+                func, params, kw_params = self._action_queue.pop(0)
+                data = func(data, *params, **kw_params)
 
-        if self.device == "cuda":
-            p_mempool = cp.get_default_pinned_memory_pool()
-            mempool = cp.get_default_memory_pool()
-            p_mempool.free_all_blocks()
-            mempool.free_all_blocks()
+            # check if the last action returns a dataset
+            if return_dataset:
+                return self._new_dataset(data)
+            else:
+                return data
+            
+        except Exception as ex:
+            self._action_queue.clear()
+            raise ex
+        finally:
+            if self.device == "cuda":
+                p_mempool = cp.get_default_pinned_memory_pool()
+                mempool = cp.get_default_memory_pool()
+                p_mempool.free_all_blocks()
+                mempool.free_all_blocks()
 
-        # check if the last action returns a dataset
-        if return_dataset:
-            return self._new_dataset(data)
-        else:
-            return data
 
     # TODO: clean logic
     def _new_dataset(

@@ -288,6 +288,11 @@ class TestDatasetWithSegmMetadata(TestCase):
         self.assertIsInstance(data, np.ndarray)
         self.assertTupleEqual(data[0].shape, (400, 400))  # verify action occurred
 
+        # test empty action queue after failed execution
+        with self.assertRaises(Exception):
+            self.ds.apply(rgb2gray).apply(rgb2gray).apply(rgb2gray).execute()
+            self.assertEqual(len(self.ds._action_queue), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
