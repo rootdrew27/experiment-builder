@@ -14,6 +14,7 @@ from typing_extensions import Self
 
 from .metadata import Metadata
 from ._helpers import _create_new_mmap_from_ndarray, _get_idx_splits
+from ._actions import _to
 from ._typing import AnyMetadata, MetadataWithLabel
 from .by import By, ByOption
 
@@ -35,6 +36,7 @@ class _Dataset(object):
         self._action_queue: list[tuple[Callable, tuple, Dict[str, Any]]] = []
         self.name = name
         self.device = "cpu"  # or 'cuda'
+        self._xp = np
         self.for_torch = for_torch
         self.transform = transform
         self.target_transform = target_transform
@@ -71,7 +73,7 @@ class _Dataset(object):
 
             if not self.for_torch:
                 fname, metavalue = self.metadata[id]
-                return data, fname, metavalue
+                return self._xp.asarray(data), fname, metavalue
 
             else:
                 assert isinstance(
@@ -92,7 +94,15 @@ class _Dataset(object):
         return DatasetIterator(dataset=self)
 
     def _to(self, device: str) -> None:
+        match device:
+            case "cuda":
+                self._xp = cp
+                self._apply((_to, (cp,), {}))
+            case "cpu":
+                self._xp = np
+                self._apply((_to, (np,), {}))
         self.device = device
+        
 
     def _cache(self, cache: bool) -> None:
         if cache:
@@ -189,11 +199,9 @@ class _Dataset(object):
     # TODO: optimize
     def _execute(self, return_dataset: bool) -> _Dataset | NDArray:
         try:
-            data = np.array(self._data)
-            if self.device == "cuda":
-                data = cp.asarray(data)
-            while len(self._action_queue) > 0:
-                func, params, kw_params = self._action_queue.pop(0)
+            data = np.asarray(self._data[:])
+            for action in self._action_queue:
+                func, params, kw_params = action
                 data = func(data, *params, **kw_params)
 
             # check if the last action returns a dataset
@@ -203,9 +211,9 @@ class _Dataset(object):
                 return data
             
         except Exception as ex:
-            self._action_queue.clear()
             raise ex
         finally:
+            self._action_queue.clear()
             if self.device == "cuda":
                 p_mempool = cp.get_default_pinned_memory_pool()
                 mempool = cp.get_default_memory_pool()
