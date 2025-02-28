@@ -134,7 +134,7 @@ class _Dataset(object):
                         c_id in info["categories"]
                     )  # check if the image has a mask (segmentation) with this category.
 
-            case By.IMG_SHAPE:
+            case By.IMGSHAPE:
                 assert isinstance(value, tuple), f"The shape ({value}) must be a tuple."
 
                 def condition(fname: str, info: Dict) -> bool:
