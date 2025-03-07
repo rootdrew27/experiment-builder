@@ -153,31 +153,53 @@ class _Dataset(object):
 
         return condition
 
-    def _subset(self, condition: Callable) -> Metadata | Any:
+    def _subset(self, condition: Callable) -> tuple[DatasetData, Metadata]:
         fname2info = {}
-        for fname, info in self.metadata.fname2info.items():
+        batch_nums = []
+        for bn, item in enumerate(self.metadata.fname2info.items()):
+            fname, info = item
             if condition(fname=fname, info=info):
                 fname2info[fname] = info
-        return self.metadata._new_metadata(fname2info)
+                batch_nums.append(bn)
+        new_data = self._data[batch_nums]
+        new_metadata = self.metadata._new_metadata(fname2info)
+        return new_data, new_metadata
 
-    def _subset_complement(self, condition: Callable) -> Metadata:
+    def _subset_complement(self, condition: Callable) -> tuple[DatasetData, Metadata]:
         fname2info_c = {}
-        for fname, info in self.metadata.fname2info.items():
+        batch_nums_c = []
+        for bn, item in enumerate(self.metadata.fname2info.items()):
+            fname, info = item
             if not condition(fname=fname, info=info):
                 fname2info_c[fname] = info
+                batch_nums_c.append(bn)
 
-        return self.metadata._new_metadata(fname2info_c)
+        new_data_c = self._data[batch_nums_c]
+        new_metadata_c = self.metadata._new_metadata(fname2info_c)
 
-    def _subset_and_complement(self, condition: Callable) -> tuple[Metadata, Metadata]:
+        return new_data_c, new_metadata_c
+
+    def _subset_and_complement(self, condition: Callable) -> tuple[tuple[DatasetData, Metadata], tuple[DatasetData, Metadata]]:
         fname2info = {}
         fname2info_c = {}
-        for fname, info in self.metadata.fname2info.items():
+        batch_nums = []
+        batch_nums_c = []
+        for bn, item in enumerate(self.metadata.fname2info.items()):
+            fname, info = item
             if condition(fname, info):
                 fname2info[fname] = info
+                batch_nums.append(bn)
             else:
                 fname2info_c[fname] = info
+                batch_nums_c.append(bn)
 
-        return self.metadata._new_metadata(fname2info), self.metadata._new_metadata(fname2info_c)
+        new_data = self._data[batch_nums]
+        new_metadata = self.metadata._new_metadata(fname2info)
+
+        new_data_c = self._data[batch_nums_c]
+        new_metadata_c = self.metadata._new_metadata(fname2info_c)
+
+        return (new_data, new_metadata), (new_data_c, new_metadata_c)
 
     def _split(
         self, split_fractions: Sequence[float], shuffle: bool, random_seed: int | None

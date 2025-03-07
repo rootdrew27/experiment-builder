@@ -80,18 +80,20 @@ class Dataset(_Dataset):
 
         if return_both:
             subset, subset_c = self._subset_and_complement(condition)
+            new_data, new_metadata = subset
+            new_data_c, new_metadata_c = subset_c
+            new_dataset = self._new_dataset(new_data=new_data, new_metadata=new_metadata)
+            new_dataset_c = self._new_dataset(new_data=new_data_c, new_metadata=new_metadata_c)
             if complement:
-                return self._new_dataset(new_metadata=subset_c)
+                return new_dataset_c, new_dataset
             else:
-                return self._new_dataset(new_metadata=subset), self._new_dataset(
-                    new_metadata=subset_c
-                )
+                return new_dataset, new_dataset_c
         elif complement:
-            subset_c = self._subset_complement(condition)
-            return self._new_dataset(new_metadata=subset_c)
+            new_data_c, new_metadata_c = self._subset_complement(condition)
+            return self._new_dataset(new_data=new_data_c, new_metadata=new_metadata_c)
         else:
-            subset = self._subset(condition)
-            return self._new_dataset(new_metadata=subset)
+            new_data, new_metadata = self._subset(condition)
+            return self._new_dataset(new_data=new_data, new_metadata=new_metadata)
 
     def split(
         self, split_fracs: Sequence[float], shuffle: bool, random_seed: int | None = None
