@@ -15,14 +15,14 @@ from typing_extensions import Self
 from .metadata import Metadata
 from ._helpers import _create_new_mmap_from_ndarray, _get_idx_splits
 from ._actions import _to
-from ._typing import AnyMetadata, MetadataWithLabel
+from ._typing import AnyMetadata, MetadataWithLabel, DatasetData
 from .by import By, ByOption
 
 
 class _Dataset(object):
     def __init__(
         self,
-        data: np.memmap | np.ndarray | Tensor,
+        data: DatasetData,
         path: Path,
         metadata: AnyMetadata,
         for_torch: bool = False,
@@ -30,7 +30,7 @@ class _Dataset(object):
         target_transform: Any | None = None,
         name: str | None = None,
     ) -> None:
-        self._data: np.ndarray | np.memmap | Tensor = data
+        self._data: DatasetData = data
         self.path = path
         self.metadata = metadata
         self._action_queue: list[tuple[Callable, tuple, Dict[str, Any]]] = []
@@ -224,9 +224,9 @@ class _Dataset(object):
     # TODO: clean logic
     def _new_dataset(
         self,
-        new_data: np.ndarray | np.memmap | Tensor | None = None,
+        new_data: DatasetData | None = None,
         new_metadata: Metadata | None = None,
-    ) -> _Dataset:
+    ) -> Self:
         new_dataset = copy(self)
         if isinstance(new_data, np.memmap):
             new_dataset._data = new_data

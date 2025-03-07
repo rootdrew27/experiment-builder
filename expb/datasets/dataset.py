@@ -9,14 +9,14 @@ from numpy.typing import NDArray
 from torch import Tensor
 
 from ._dataset import _Dataset
-from ._typing import AnyMetadata, MetadataWithLabel
+from ._typing import AnyMetadata, MetadataWithLabel, DatasetData
 from .by import ByOption
 
 
 class Dataset(_Dataset):
     def __init__(
         self,
-        data: np.memmap | np.ndarray | Tensor,
+        data: DatasetData,
         path: Path,
         metadata: AnyMetadata,
         for_torch: bool = False,
@@ -33,7 +33,6 @@ class Dataset(_Dataset):
         assert device in ["cpu", "cuda"], "Device must be one of ['cpu', 'cuda']"
         self._to(device)
         return self
-        
 
     # TODO: Make the output pretty
     def display_metadata(self) -> None:
