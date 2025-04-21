@@ -99,7 +99,7 @@ class SegmMetadata(Metadata):
         ImageDraw.Draw(mask).polygon(segm, outline=1, fill=1)
         return np.array(mask, dtype=np.uint8)
 
-    def _get_label(self, id: int | str) -> np.ndarray:
+    def _get_label(self, id: int | str, ignore:list[int]) -> np.ndarray:
         info: Dict
 
         if isinstance(id, str):
@@ -111,6 +111,8 @@ class SegmMetadata(Metadata):
         mask = np.full((height, width), 0)
 
         for cat_num, segm in zip(info["categories"], info["segmentations"]):
+            if cat_num in ignore:
+                continue
             binary_mask = self._build_mask(segm, width, height)
             mask = np.maximum(
                 mask, binary_mask * cat_num
@@ -118,8 +120,31 @@ class SegmMetadata(Metadata):
 
         return mask
 
-    def _display_label(self, id: int | str) -> None:
-        label = self._get_label(id)
+    def _get_label_by_category(self, id: int | str, cat: int | str) -> np.ndarray:
+        info: Dict
+
+        if isinstance(id, str):
+            info = self.fname2info[id]
+        else:
+            info = self.infos[id]
+        
+        if isinstance(cat, str):
+            cat_id = self.categoryname2id[cat]
+        else:
+            cat_id = cat
+
+        width, height = info["width"], info["height"]
+        mask = np.full((height, width), 0)
+
+        for cat_num, segm in zip(info["categories"], info["segmentations"]):
+            if cat_num == cat_id:
+                cat_mask = self._build_mask(segm, width, height)
+                mask = np.maximum(mask, cat_mask)
+        
+        return mask
+
+    def _display_label(self, id: int | str, ignore: list[int]) -> None:
+        label = self._get_label(id, ignore)
         max_cat_id = len(self.categoryname2id) - 1
         adj_label = label * (255 / max_cat_id)
         plt.imshow(adj_label, vmin=0, vmax=255, cmap="viridis")

@@ -38,13 +38,17 @@ class Dataset(_Dataset):
     def display_metadata(self) -> None:
         print(self.metadata)
 
-    def get_label(self, id: int | str) -> NDArray:
+    def get_label(self, id: int | str, ignore:list[int] = []) -> NDArray:
         assert isinstance(self.metadata, MetadataWithLabel)
-        return self.metadata._get_label(id)
+        return self.metadata._get_label(id, ignore)
 
-    def display_label(self, id: int | str) -> None:
+    def get_label_by_category(self, id: int | str, cat: int | str) -> np.ndarray:
         assert isinstance(self.metadata, MetadataWithLabel)
-        self.metadata._display_label(id)
+        return self.metadata._get_label_by_category(id, cat)
+
+    def display_label(self, id: int | str, ignore: list[int]) -> None:
+        assert isinstance(self.metadata, MetadataWithLabel)
+        self.metadata._display_label(id, ignore)
 
     def torch(self, for_torch: bool = True) -> None:
         # check if this Dataset's Metadata implements a _get_label function # To allow Datasets with Tensors (but no labels) move this to _Dataset.__getitem__()

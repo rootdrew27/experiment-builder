@@ -80,7 +80,7 @@ class _Dataset(object):
                     self.metadata, MetadataWithLabel
                 )  # NOTE: This will never be hit right now. Yet it is necessary to appease the MyPy gods.
                 tensor = torch.from_numpy(data.copy())
-                label = self.metadata._get_label(id)
+                label = self.metadata._get_label(id, ignore=[])
                 if self.transform:
                     data = self.transform(data)
                 if self.target_transform:
